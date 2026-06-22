@@ -33,8 +33,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="app-grain" aria-hidden />
       <div className="app-vignette" aria-hidden />
 
-      <header className="app-header sticky top-0 z-20">
-        <div className="max-w-lg mx-auto px-5 py-5 flex items-center justify-between">
+      <header className="app-header sticky top-0 z-20 pt-[env(safe-area-inset-top)]">
+        <div className="max-w-lg mx-auto px-4 sm:px-5 py-4 sm:py-5 flex items-center justify-between gap-3">
           <div>
             <p className="brand-label">WIR ZWEI</p>
             {!isHome && (

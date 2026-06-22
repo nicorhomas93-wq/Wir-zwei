@@ -80,37 +80,33 @@ export default function Moodboards() {
 
             return (
               <article key={board.id} className="card moodboard-list-card animate-moodboard-entry">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <Link to={`/moodboards/${board.id}`} className="moodboard-list-title tap-active flex-1">
-                    {boardTitle}
-                  </Link>
+                <Link to={`/moodboards/${board.id}`} className="block tap-active moodboard-list-link">
+                  <div className="moodboard-list-cover">
+                    {cover ? (
+                      <img src={cover} alt="" className="moodboard-list-cover-image" />
+                    ) : textPreview ? (
+                      <div className="moodboard-list-text-preview moodboard-list-cover-fallback">
+                        <p className="line-clamp-3">{textPreview}</p>
+                      </div>
+                    ) : (
+                      <div className="moodboard-list-empty-preview moodboard-list-cover-fallback">
+                        <span className="section-symbol text-[0.625rem]">{SYMBOLS.moodboards}</span>
+                      </div>
+                    )}
+                    <div className="moodboard-list-cover-meta">
+                      <p className="moodboard-list-title">{boardTitle}</p>
+                      <p className="moodboard-list-count">
+                        {board.items.length} {board.items.length === 1 ? 'Eintrag' : 'Einträge'}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+                <div className="moodboard-list-actions">
                   <DeleteButton
                     onConfirm={() => deleteMoodboard(board.id)}
                     confirmMessage={`„${boardTitle}" wirklich löschen?`}
                   />
                 </div>
-
-                <Link to={`/moodboards/${board.id}`} className="block tap-active">
-                {cover ? (
-                  <img
-                    src={cover}
-                    alt=""
-                    className="w-full h-32 object-cover rounded-xl mb-3 opacity-90"
-                  />
-                ) : textPreview ? (
-                  <div className="moodboard-list-text-preview mb-3">
-                    <p className="line-clamp-3">{textPreview}</p>
-                  </div>
-                ) : (
-                  <div className="moodboard-list-empty-preview mb-3">
-                    <span className="section-symbol text-[0.625rem]">{SYMBOLS.moodboards}</span>
-                  </div>
-                )}
-
-                <p className="text-xs text-faint">
-                  {board.items.length} {board.items.length === 1 ? 'Eintrag' : 'Einträge'}
-                </p>
-                </Link>
               </article>
             )
           })}
