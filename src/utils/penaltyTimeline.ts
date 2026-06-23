@@ -32,7 +32,7 @@ function monthEntries(history: PenaltyMonthReset[]): TimelineEntry[] {
       rows.push({
         id: `${month.id}-marie`,
         at: month.processedAt,
-        label: 'Automatischer Beziehungsmonat-Abzug',
+        label: 'Monatsanpassung',
         delta: -marieDelta,
         kind: 'monatsabzug',
         targetUserName: 'Marie',
@@ -45,7 +45,7 @@ function monthEntries(history: PenaltyMonthReset[]): TimelineEntry[] {
       rows.push({
         id: `${month.id}-nico`,
         at: month.processedAt,
-        label: 'Automatischer Beziehungsmonat-Abzug',
+        label: 'Monatsanpassung',
         delta: -nicoDelta,
         kind: 'monatsabzug',
         targetUserName: 'Nico',

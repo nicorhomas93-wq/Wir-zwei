@@ -25,6 +25,8 @@ const USERS = [
   { id: 'nico', name: 'Nico' },
 ] as const
 
+const MINI_TIMELINE_LIMIT = 8
+
 type CatalogTab = 'strafen' | 'wiedergutmachungen'
 
 function CatalogCard({
@@ -43,24 +45,22 @@ function CatalogCard({
   disabledFor?: (targetUserId: string) => boolean
 }) {
   return (
-    <article className={`penalty-card card animate-fade-in penalty-card--${entry.type}`}>
+    <article className={`penalty-card card penalty-card--${entry.type}`}>
       <div className="penalty-card-top">
-        <div>
-          <p className="penalty-category">{entry.category}</p>
-          <h2 className="law-title">{entry.title}</h2>
+        <div className="penalty-card-main">
+          <span className="penalty-category-pill">{entry.category}</span>
+          <h2 className="penalty-card-title">{entry.title}</h2>
         </div>
-        <div
-          className={`penalty-points-badge ${delta < 0 ? 'penalty-points-badge--minus' : ''}`}
-        >
+        <div className={`penalty-points-badge ${delta < 0 ? 'penalty-points-badge--minus' : ''}`}>
           {delta > 0 ? `+${delta}` : delta} P
         </div>
       </div>
 
-      <p className="law-text">{entry.description}</p>
+      <p className="penalty-card-desc">{entry.description}</p>
 
-      {lastApplied && <p className="penalty-last-applied">Zuletzt: {lastApplied}</p>}
+      {lastApplied && <p className="penalty-last-applied">Zuletzt · {lastApplied}</p>}
 
-      <div className="penalty-actions">
+      <div className="penalty-actions penalty-actions--split">
         {USERS.map((target) => {
           const key = `${entry.id}-${target.id}`
           const justApplied = appliedId === key
@@ -70,11 +70,11 @@ function CatalogCard({
             <button
               key={target.id}
               type="button"
-              className={`penalty-apply-btn tap-active ${justApplied ? 'penalty-apply-btn--done' : ''} ${delta < 0 ? 'penalty-apply-btn--redemption' : ''}`}
+              className={`penalty-apply-btn tap-active penalty-apply-btn--${target.id} ${justApplied ? 'penalty-apply-btn--done' : ''} ${delta < 0 ? 'penalty-apply-btn--redemption' : ''}`}
               onClick={() => onApply(entry, target.id)}
               disabled={disabled}
             >
-              {justApplied ? '✓ Angewendet' : `Für ${target.name}`}
+              {justApplied ? '✓' : target.name}
             </button>
           )
         })}
@@ -89,11 +89,13 @@ export default function Strafkatalog() {
   const [tab, setTab] = useState<CatalogTab>('strafen')
   const [category, setCategory] = useState<string>('Alle')
   const [appliedId, setAppliedId] = useState<string | null>(null)
+  const [flashUserId, setFlashUserId] = useState<string | null>(null)
 
   const nextAnniversary = useMemo(() => getNextRelationshipAnniversary(), [])
   const relationshipMonth = useMemo(() => getCurrentRelationshipMonthIndex(), [])
-  const timeline = useMemo(
-    () => buildPenaltyTimeline({ penaltyApplications, penaltyMonthHistory }),
+  const miniTimeline = useMemo(
+    () =>
+      buildPenaltyTimeline({ penaltyApplications, penaltyMonthHistory }).slice(0, MINI_TIMELINE_LIMIT),
     [penaltyApplications, penaltyMonthHistory]
   )
 
@@ -116,12 +118,19 @@ export default function Strafkatalog() {
     return map
   }, [penaltyApplications])
 
+  const flashScore = (targetUserId: string, entryKey: string) => {
+    setAppliedId(entryKey)
+    setFlashUserId(targetUserId)
+    window.setTimeout(() => {
+      setAppliedId(null)
+      setFlashUserId(null)
+    }, 700)
+  }
+
   const handleApplyStrafe = (entry: CatalogEntry, targetUserId: string) => {
     if (!user) return
     const target = USERS.find((u) => u.id === targetUserId)
     if (!target) return
-
-    if (!window.confirm(`„${entry.title}" (+${POINT_DELTA}) für ${target.name}?`)) return
 
     applyPenalty({
       penaltyId: entry.id,
@@ -133,19 +142,14 @@ export default function Strafkatalog() {
       appliedByUserName: user.name,
     })
 
-    setAppliedId(`${entry.id}-${targetUserId}`)
-    window.setTimeout(() => setAppliedId(null), 1200)
+    flashScore(targetUserId, `${entry.id}-${targetUserId}`)
   }
 
   const handleApplyWiedergutmachung = (entry: CatalogEntry, targetUserId: string) => {
     if (!user) return
     const target = USERS.find((u) => u.id === targetUserId)
     if (!target) return
-
-    const current = penaltyScores[target.id]
-    if (current <= 0) return
-
-    if (!window.confirm(`„${entry.title}" (−${POINT_DELTA}) für ${target.name}?`)) return
+    if (penaltyScores[target.id] <= 0) return
 
     const result = applyRedemption({
       penaltyId: entry.id,
@@ -157,14 +161,11 @@ export default function Strafkatalog() {
     })
 
     if (!result) return
-
-    setAppliedId(`${entry.id}-${targetUserId}`)
-    window.setTimeout(() => setAppliedId(null), 1200)
+    flashScore(targetUserId, `${entry.id}-${targetUserId}`)
   }
 
   const handleManualGrant = (targetUserId: string, targetUserName: string) => {
     if (!user) return
-    if (!window.confirm(`+${POINT_DELTA} Punkt manuell an ${targetUserName} vergeben?`)) return
 
     grantManualPenaltyPoint({
       targetUserId,
@@ -172,101 +173,111 @@ export default function Strafkatalog() {
       appliedByUserId: user.id,
       appliedByUserName: user.name,
     })
+
+    flashScore(targetUserId, `manual-grant-${targetUserId}`)
   }
 
   const handleManualDeduct = (targetUserId: string, targetUserName: string) => {
     if (!user) return
     if (penaltyScores[targetUserId as keyof typeof penaltyScores] <= 0) return
 
-    if (
-      !window.confirm(
-        `−${POINT_DELTA} Punkt bei ${targetUserName} manuell abbauen? (Wiedergutmachung / erledigt)`
-      )
-    ) {
-      return
-    }
-
-    deductManualPenaltyPoint({
+    const result = deductManualPenaltyPoint({
       targetUserId,
       targetUserName,
       appliedByUserId: user.id,
       appliedByUserName: user.name,
     })
+
+    if (!result) return
+    flashScore(targetUserId, `manual-deduct-${targetUserId}`)
   }
 
+  const nextMonthShort = formatAnniversaryLabel(nextAnniversary).replace(/\s\d{4}$/, '')
+
   return (
-    <div className="document-page space-y-8 pb-16">
-      <div>
+    <div className="document-page penalty-page space-y-5 pb-16">
+      <div className="penalty-page-header">
         <Link to="/" className="text-sm nav-back tap-active">
           ← Home
         </Link>
-        <Link to="/beziehungsgesetzbuch" className="text-sm nav-back tap-active block mt-2">
-          ← Beziehungsgesetzbuch
-        </Link>
-        <p className="document-kicker mt-4">Strafkatalog</p>
-        <h1 className="document-title">Punkte & Wiedergutmachung.</h1>
-        <p className="document-subtitle">
-          Strafen +1 · Wiedergutmachungen −1 · Beziehungsmonat −1 automatisch.
-        </p>
+        <p className="document-kicker mt-3">Strafkatalog</p>
+        <h1 className="document-title text-xl">Punkte & Wiedergutmachung</h1>
       </div>
 
-      <section className="penalty-scoreboard document-block animate-fade-in">
-        <p className="document-label">Punktestand</p>
-        <div className="penalty-score-grid">
+      <section className="penalty-scoreboard penalty-scoreboard--compact document-block animate-fade-in">
+        <div className="penalty-score-hero">
           {USERS.map((entry) => (
-            <div key={entry.id} className="penalty-score-card">
+            <div
+              key={entry.id}
+              className={`penalty-score-card penalty-score-card--hero ${flashUserId === entry.id ? 'penalty-score-card--flash' : ''}`}
+            >
               <p className="penalty-score-name">{entry.name}</p>
               <p className="penalty-score-value">{penaltyScores[entry.id]}</p>
-              <p className="penalty-score-label">
-                {penaltyScores[entry.id] === 1 ? 'Punkt' : 'Punkte'}
-              </p>
-              <div className="penalty-manual-actions">
+              <div className="penalty-manual-actions penalty-manual-actions--row">
                 <button
                   type="button"
                   className="penalty-manual-btn penalty-manual-btn--grant tap-active"
                   onClick={() => handleManualGrant(entry.id, entry.name)}
                 >
-                  +1 vergeben
+                  +1
                 </button>
                 <button
                   type="button"
                   className="penalty-manual-btn penalty-manual-btn--deduct tap-active"
                   onClick={() => handleManualDeduct(entry.id, entry.name)}
                   disabled={penaltyScores[entry.id] <= 0}
+                  title="Schnell ausgleichen"
                 >
-                  −1 abbauen
+                  −1 ausgleichen
                 </button>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="penalty-counter-meta">
+        <div className="penalty-counter-meta penalty-counter-meta--compact">
           <div className="penalty-counter-meta-item">
-            <p className="penalty-counter-meta-label">Beziehungsstart</p>
+            <p className="penalty-counter-meta-label">Start</p>
             <p className="penalty-counter-meta-value">{RELATIONSHIP_START_LABEL}</p>
           </div>
           <div className="penalty-counter-meta-item">
-            <p className="penalty-counter-meta-label">Beziehungsmonat</p>
-            <p className="penalty-counter-meta-value">Monat {relationshipMonth}</p>
+            <p className="penalty-counter-meta-label">Monat</p>
+            <p className="penalty-counter-meta-value">{relationshipMonth}</p>
           </div>
           <div className="penalty-counter-meta-item">
-            <p className="penalty-counter-meta-label">Nächster Beziehungsmonat</p>
-            <p className="penalty-counter-meta-value">{formatAnniversaryLabel(nextAnniversary)}</p>
+            <p className="penalty-counter-meta-label">Nächster</p>
+            <p className="penalty-counter-meta-value">{nextMonthShort}</p>
           </div>
           <div className="penalty-counter-meta-item">
-            <p className="penalty-counter-meta-label">Letzte Monatsanpassung</p>
+            <p className="penalty-counter-meta-label">Letzte Anpassung</p>
             <p className="penalty-counter-meta-value">
               {penaltyMeta.lastProcessedAnniversary
-                ? formatMonthLabel(penaltyMeta.lastProcessedAnniversary)
-                : 'Noch keine'}
+                ? formatMonthLabel(penaltyMeta.lastProcessedAnniversary).replace(/\s\d{4}$/, '')
+                : '—'}
             </p>
           </div>
         </div>
 
-        <p className="penalty-counter-hint">
-          Manuell: +1 vergeben oder −1 abbauen direkt am Counter — zusätzlich zu den Katalog-Tabs.
-        </p>
+        {miniTimeline.length > 0 && (
+          <div className="penalty-mini-timeline">
+            <p className="penalty-mini-timeline-label">Verlauf</p>
+            <ul className="penalty-mini-timeline-list">
+              {miniTimeline.map((item) => (
+                <li key={item.id} className="penalty-mini-timeline-item">
+                  <span
+                    className={`penalty-mini-timeline-delta ${item.delta > 0 ? 'penalty-mini-timeline-delta--plus' : 'penalty-mini-timeline-delta--minus'}`}
+                  >
+                    {formatTimelineDelta(item.delta)}
+                  </span>
+                  <span className="penalty-mini-timeline-text">
+                    {item.label}
+                    <span className="penalty-mini-timeline-who"> · {item.targetUserName}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <section className="animate-fade-in">
@@ -295,8 +306,7 @@ export default function Strafkatalog() {
           </button>
         </div>
 
-        <p className="document-label px-1 mb-3 mt-5">Kategorien</p>
-        <div className="penalty-filters">
+        <div className="penalty-filters penalty-filters--compact">
           <button
             type="button"
             className={`penalty-filter tap-active ${category === 'Alle' ? 'penalty-filter--active' : ''}`}
@@ -317,16 +327,14 @@ export default function Strafkatalog() {
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section className="penalty-catalog space-y-2.5">
         {filtered.map((entry) => (
           <CatalogCard
             key={entry.id}
             entry={entry}
             delta={tab === 'strafen' ? POINT_DELTA : -POINT_DELTA}
             lastApplied={
-              lastByEntry.get(entry.id)
-                ? formatDate(lastByEntry.get(entry.id)!)
-                : undefined
+              lastByEntry.get(entry.id) ? formatDate(lastByEntry.get(entry.id)!) : undefined
             }
             appliedId={appliedId}
             onApply={tab === 'strafen' ? handleApplyStrafe : handleApplyWiedergutmachung}
@@ -337,36 +345,6 @@ export default function Strafkatalog() {
             }
           />
         ))}
-      </section>
-
-      <section className="document-block animate-fade-in">
-        <p className="document-label">Timeline</p>
-        {timeline.length === 0 ? (
-          <p className="law-text">Noch keine Einträge — der Katalog wartet geduldig.</p>
-        ) : (
-          <ul className="penalty-timeline">
-            {timeline.map((entry) => (
-              <li
-                key={entry.id}
-                className={`penalty-timeline-item penalty-timeline-item--${entry.kind}`}
-              >
-                <span
-                  className={`penalty-timeline-delta ${entry.delta > 0 ? 'penalty-timeline-delta--plus' : 'penalty-timeline-delta--minus'}`}
-                >
-                  {formatTimelineDelta(entry.delta)}
-                </span>
-                <div className="penalty-timeline-body">
-                  <p className="penalty-history-title">{entry.label}</p>
-                  <p className="penalty-history-meta">
-                    {entry.targetUserName}
-                    {entry.appliedByUserName !== 'System' && ` · von ${entry.appliedByUserName}`}
-                  </p>
-                </div>
-                <time className="penalty-history-time">{formatDate(entry.at)}</time>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
     </div>
   )
