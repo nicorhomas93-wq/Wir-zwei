@@ -46,11 +46,14 @@ export interface PlanEvent {
   createdAt: string
 }
 
+export type PenaltyEntryKind = 'strafe' | 'wiedergutmachung' | 'monatsabzug' | 'manuell'
+
 export interface PenaltyApplication {
   id: string
   penaltyId: string
   title: string
   points: number
+  kind: PenaltyEntryKind
   targetUserId: string
   targetUserName: string
   appliedByUserId: string

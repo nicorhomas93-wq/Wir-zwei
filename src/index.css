@@ -1419,6 +1419,97 @@
     color: rgba(255, 255, 255, 0.38);
   }
 
+  .penalty-apply-btn--redemption {
+    color: rgba(255, 220, 200, 0.9);
+    background: rgba(58, 34, 18, 0.88);
+    border-color: rgba(255, 140, 80, 0.22);
+  }
+
+  .penalty-apply-btn:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .penalty-tabs {
+    @apply grid grid-cols-2 gap-2 p-1 rounded-2xl;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .penalty-tab {
+    @apply flex flex-col items-center justify-center gap-1 rounded-xl py-3.5 px-3 text-sm font-medium;
+    color: rgba(255, 255, 255, 0.45);
+    transition: color 300ms ease-in-out, background 300ms ease-in-out;
+  }
+
+  .penalty-tab--active {
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .penalty-tab--strafe.penalty-tab--active {
+    box-shadow: inset 0 0 0 1px rgba(46, 204, 113, 0.2);
+  }
+
+  .penalty-tab--redemption.penalty-tab--active {
+    box-shadow: inset 0 0 0 1px rgba(255, 140, 80, 0.22);
+  }
+
+  .penalty-tab-delta {
+    @apply text-xs tabular-nums;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .penalty-tab--active .penalty-tab-delta {
+    color: rgba(46, 204, 113, 0.75);
+  }
+
+  .penalty-tab--redemption.penalty-tab--active .penalty-tab-delta {
+    color: rgba(255, 160, 100, 0.85);
+  }
+
+  .penalty-points-badge--minus {
+    color: rgba(255, 210, 180, 0.92);
+    background: rgba(255, 120, 40, 0.12);
+    border-color: rgba(255, 140, 80, 0.25);
+  }
+
+  .penalty-card--wiedergutmachung {
+    border-color: rgba(255, 140, 80, 0.1);
+  }
+
+  .penalty-timeline {
+    @apply space-y-0;
+  }
+
+  .penalty-timeline-item {
+    @apply flex items-start gap-3 py-3;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .penalty-timeline-item:last-child {
+    border-bottom: none;
+  }
+
+  .penalty-timeline-delta {
+    @apply shrink-0 w-9 text-center text-sm font-semibold tabular-nums rounded-lg py-1;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .penalty-timeline-delta--plus {
+    color: rgba(200, 236, 212, 0.95);
+    background: rgba(46, 204, 113, 0.1);
+  }
+
+  .penalty-timeline-delta--minus {
+    color: rgba(255, 210, 180, 0.92);
+    background: rgba(255, 120, 40, 0.1);
+  }
+
+  .penalty-timeline-body {
+    @apply flex-1 min-w-0;
+  }
+
   .penalty-month-history {
     @apply space-y-3;
   }

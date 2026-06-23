@@ -2,15 +2,22 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { RELATIONSHIP_START_LABEL } from '../constants/relationship'
-import { PENALTY_CATEGORIES, PENALTY_POINTS, STRAFKATALOG } from '../content/strafkatalog'
+import type { CatalogEntry } from '../content/strafkatalog'
+import {
+  POINT_DELTA,
+  STRAFEN,
+  STRAFEN_KATEGORIEN,
+  WIEDERGUTMACHUNG_KATEGORIEN,
+  WIEDERGUTMACHUNGEN,
+} from '../content/strafkatalog'
 import { useAppData } from '../storage/DataContext'
-import { applyPenalty, deductManualPenaltyPoint, grantManualPenaltyPoint } from '../storage/db'
-import { formatDate, formatDateTime } from '../utils/formatDate'
+import { applyPenalty, applyRedemption } from '../storage/db'
+import { formatDate } from '../utils/formatDate'
+import { buildPenaltyTimeline, formatMonthLabel, formatTimelineDelta } from '../utils/penaltyTimeline'
 import {
   formatAnniversaryLabel,
   getCurrentRelationshipMonthIndex,
   getNextRelationshipAnniversary,
-  parseDateKey,
 } from '../utils/relationshipMonth'
 
 const USERS = [
@@ -18,89 +25,141 @@ const USERS = [
   { id: 'nico', name: 'Nico' },
 ] as const
 
+type CatalogTab = 'strafen' | 'wiedergutmachungen'
+
+function CatalogCard({
+  entry,
+  delta,
+  lastApplied,
+  appliedId,
+  onApply,
+  disabledFor,
+}: {
+  entry: CatalogEntry
+  delta: number
+  lastApplied?: string
+  appliedId: string | null
+  onApply: (entry: CatalogEntry, targetUserId: string) => void
+  disabledFor?: (targetUserId: string) => boolean
+}) {
+  return (
+    <article className={`penalty-card card animate-fade-in penalty-card--${entry.type}`}>
+      <div className="penalty-card-top">
+        <div>
+          <p className="penalty-category">{entry.category}</p>
+          <h2 className="law-title">{entry.title}</h2>
+        </div>
+        <div
+          className={`penalty-points-badge ${delta < 0 ? 'penalty-points-badge--minus' : ''}`}
+        >
+          {delta > 0 ? `+${delta}` : delta} P
+        </div>
+      </div>
+
+      <p className="law-text">{entry.description}</p>
+
+      {lastApplied && <p className="penalty-last-applied">Zuletzt: {lastApplied}</p>}
+
+      <div className="penalty-actions">
+        {USERS.map((target) => {
+          const key = `${entry.id}-${target.id}`
+          const justApplied = appliedId === key
+          const disabled = disabledFor?.(target.id) ?? false
+
+          return (
+            <button
+              key={target.id}
+              type="button"
+              className={`penalty-apply-btn tap-active ${justApplied ? 'penalty-apply-btn--done' : ''} ${delta < 0 ? 'penalty-apply-btn--redemption' : ''}`}
+              onClick={() => onApply(entry, target.id)}
+              disabled={disabled}
+            >
+              {justApplied ? '✓ Angewendet' : `Für ${target.name}`}
+            </button>
+          )
+        })}
+      </div>
+    </article>
+  )
+}
+
 export default function Strafkatalog() {
   const { user } = useAuth()
   const { penaltyApplications, penaltyScores, penaltyMeta, penaltyMonthHistory } = useAppData()
+  const [tab, setTab] = useState<CatalogTab>('strafen')
   const [category, setCategory] = useState<string>('Alle')
   const [appliedId, setAppliedId] = useState<string | null>(null)
 
   const nextAnniversary = useMemo(() => getNextRelationshipAnniversary(), [])
   const relationshipMonth = useMemo(() => getCurrentRelationshipMonthIndex(), [])
-
-  const recent = useMemo(
-    () =>
-      [...penaltyApplications]
-        .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
-        .slice(0, 12),
-    [penaltyApplications]
+  const timeline = useMemo(
+    () => buildPenaltyTimeline({ penaltyApplications, penaltyMonthHistory }),
+    [penaltyApplications, penaltyMonthHistory]
   )
+
+  const activeList = tab === 'strafen' ? STRAFEN : WIEDERGUTMACHUNGEN
+  const activeCategories =
+    tab === 'strafen' ? STRAFEN_KATEGORIEN : WIEDERGUTMACHUNG_KATEGORIEN
 
   const filtered =
     category === 'Alle'
-      ? STRAFKATALOG
-      : STRAFKATALOG.filter((entry) => entry.category === category)
+      ? activeList
+      : activeList.filter((entry) => entry.category === category)
 
-  const lastByPenalty = useMemo(() => {
+  const lastByEntry = useMemo(() => {
     const map = new Map<string, string>()
     for (const entry of penaltyApplications) {
-      if (!map.has(entry.penaltyId)) map.set(entry.penaltyId, entry.appliedAt)
+      if (!map.has(entry.penaltyId)) {
+        map.set(entry.penaltyId, entry.appliedAt)
+      }
     }
     return map
   }, [penaltyApplications])
 
-  const handleApply = (penaltyId: string, title: string, targetUserId: string) => {
+  const handleApplyStrafe = (entry: CatalogEntry, targetUserId: string) => {
     if (!user) return
-
-    const target = USERS.find((entry) => entry.id === targetUserId)
+    const target = USERS.find((u) => u.id === targetUserId)
     if (!target) return
 
-    const message = `„${title}" (+${PENALTY_POINTS} Punkt) für ${target.name} anwenden?`
-    if (!window.confirm(message)) return
+    if (!window.confirm(`„${entry.title}" (+${POINT_DELTA}) für ${target.name}?`)) return
 
     applyPenalty({
-      penaltyId,
-      title,
+      penaltyId: entry.id,
+      kind: 'strafe',
+      title: entry.title,
       targetUserId: target.id,
       targetUserName: target.name,
       appliedByUserId: user.id,
       appliedByUserName: user.name,
     })
 
-    setAppliedId(`${penaltyId}-${targetUserId}`)
+    setAppliedId(`${entry.id}-${targetUserId}`)
     window.setTimeout(() => setAppliedId(null), 1200)
   }
 
-  const handleManualGrant = (targetUserId: string, targetUserName: string) => {
+  const handleApplyWiedergutmachung = (entry: CatalogEntry, targetUserId: string) => {
     if (!user) return
-    if (!window.confirm(`+${PENALTY_POINTS} Punkt manuell an ${targetUserName} vergeben?`)) return
+    const target = USERS.find((u) => u.id === targetUserId)
+    if (!target) return
 
-    grantManualPenaltyPoint({
-      targetUserId,
-      targetUserName,
-      appliedByUserId: user.id,
-      appliedByUserName: user.name,
-    })
-  }
-
-  const handleManualDeduct = (targetUserId: string, targetUserName: string) => {
-    if (!user) return
-    const current = penaltyScores[targetUserId as keyof typeof penaltyScores]
+    const current = penaltyScores[target.id]
     if (current <= 0) return
 
-    if (
-      !window.confirm(
-        `−${PENALTY_POINTS} Punkt bei ${targetUserName} abbauen? (Wiedergutmachung / erledigt)`
-      )
-    ) {
-      return
-    }
+    if (!window.confirm(`„${entry.title}" (−${POINT_DELTA}) für ${target.name}?`)) return
 
-    deductManualPenaltyPoint({
-      targetUserId,
-      targetUserName,
+    const result = applyRedemption({
+      penaltyId: entry.id,
+      title: entry.title,
+      targetUserId: target.id,
+      targetUserName: target.name,
       appliedByUserId: user.id,
       appliedByUserName: user.name,
     })
+
+    if (!result) return
+
+    setAppliedId(`${entry.id}-${targetUserId}`)
+    window.setTimeout(() => setAppliedId(null), 1200)
   }
 
   return (
@@ -115,7 +174,7 @@ export default function Strafkatalog() {
         <p className="document-kicker mt-4">Strafkatalog</p>
         <h1 className="document-title">Punkte & Wiedergutmachung.</h1>
         <p className="document-subtitle">
-          Punkte manuell vergeben oder abbauen. Pro Beziehungsmonat zusätzlich −1 automatisch.
+          Strafen +1 · Wiedergutmachungen −1 · Beziehungsmonat −1 automatisch.
         </p>
       </div>
 
@@ -129,23 +188,6 @@ export default function Strafkatalog() {
               <p className="penalty-score-label">
                 {penaltyScores[entry.id] === 1 ? 'Punkt' : 'Punkte'}
               </p>
-              <div className="penalty-manual-actions">
-                <button
-                  type="button"
-                  className="penalty-manual-btn penalty-manual-btn--grant tap-active"
-                  onClick={() => handleManualGrant(entry.id, entry.name)}
-                >
-                  +1 vergeben
-                </button>
-                <button
-                  type="button"
-                  className="penalty-manual-btn penalty-manual-btn--deduct tap-active"
-                  onClick={() => handleManualDeduct(entry.id, entry.name)}
-                  disabled={penaltyScores[entry.id] <= 0}
-                >
-                  −1 abbauen
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -164,23 +206,43 @@ export default function Strafkatalog() {
             <p className="penalty-counter-meta-value">{formatAnniversaryLabel(nextAnniversary)}</p>
           </div>
           <div className="penalty-counter-meta-item">
-            <p className="penalty-counter-meta-label">Letzter Monatsabzug</p>
+            <p className="penalty-counter-meta-label">Letzte Monatsanpassung</p>
             <p className="penalty-counter-meta-value">
               {penaltyMeta.lastProcessedAnniversary
-                ? formatDate(parseDateKey(penaltyMeta.lastProcessedAnniversary).toISOString())
-                : 'Noch keiner'}
+                ? formatMonthLabel(penaltyMeta.lastProcessedAnniversary)
+                : 'Noch keine'}
             </p>
           </div>
         </div>
-
-        <p className="penalty-counter-hint">
-          Manuell: „+1 vergeben" oder Strafe aus dem Katalog · „−1 abbauen" bei Wiedergutmachung.
-          Automatisch: Am Beziehungstag (30. oder letzter Tag im Monat) −1 pro Person — nie unter 0.
-        </p>
       </section>
 
       <section className="animate-fade-in">
-        <p className="document-label px-1 mb-3">Kategorien</p>
+        <div className="penalty-tabs">
+          <button
+            type="button"
+            className={`penalty-tab tap-active ${tab === 'strafen' ? 'penalty-tab--active penalty-tab--strafe' : ''}`}
+            onClick={() => {
+              setTab('strafen')
+              setCategory('Alle')
+            }}
+          >
+            Strafen
+            <span className="penalty-tab-delta">+1</span>
+          </button>
+          <button
+            type="button"
+            className={`penalty-tab tap-active ${tab === 'wiedergutmachungen' ? 'penalty-tab--active penalty-tab--redemption' : ''}`}
+            onClick={() => {
+              setTab('wiedergutmachungen')
+              setCategory('Alle')
+            }}
+          >
+            Wiedergutmachungen
+            <span className="penalty-tab-delta">−1</span>
+          </button>
+        </div>
+
+        <p className="document-label px-1 mb-3 mt-5">Kategorien</p>
         <div className="penalty-filters">
           <button
             type="button"
@@ -189,7 +251,7 @@ export default function Strafkatalog() {
           >
             Alle
           </button>
-          {PENALTY_CATEGORIES.map((entry) => (
+          {activeCategories.map((entry) => (
             <button
               key={entry}
               type="button"
@@ -203,91 +265,51 @@ export default function Strafkatalog() {
       </section>
 
       <section className="space-y-3">
-        {filtered.map((entry) => {
-          const lastApplied = lastByPenalty.get(entry.id)
-
-          return (
-            <article key={entry.id} className="penalty-card card animate-fade-in">
-              <div className="penalty-card-top">
-                <div>
-                  <p className="law-paragraph">{entry.paragraph}</p>
-                  <h2 className="law-title">{entry.title}</h2>
-                  {entry.category && <p className="penalty-category">{entry.category}</p>}
-                </div>
-                <div className="penalty-points-badge">{PENALTY_POINTS} P</div>
-              </div>
-
-              <p className="law-text">{entry.description}</p>
-
-              {lastApplied && (
-                <p className="penalty-last-applied">Zuletzt: {formatDateTime(lastApplied)}</p>
-              )}
-
-              <div className="penalty-actions">
-                {USERS.map((target) => {
-                  const key = `${entry.id}-${target.id}`
-                  const justApplied = appliedId === key
-
-                  return (
-                    <button
-                      key={target.id}
-                      type="button"
-                      className={`penalty-apply-btn tap-active ${justApplied ? 'penalty-apply-btn--done' : ''}`}
-                      onClick={() => handleApply(entry.id, entry.title, target.id)}
-                    >
-                      {justApplied ? '✓ Angewendet' : `Für ${target.name}`}
-                    </button>
-                  )
-                })}
-              </div>
-            </article>
-          )
-        })}
+        {filtered.map((entry) => (
+          <CatalogCard
+            key={entry.id}
+            entry={entry}
+            delta={tab === 'strafen' ? POINT_DELTA : -POINT_DELTA}
+            lastApplied={
+              lastByEntry.get(entry.id)
+                ? formatDate(lastByEntry.get(entry.id)!)
+                : undefined
+            }
+            appliedId={appliedId}
+            onApply={tab === 'strafen' ? handleApplyStrafe : handleApplyWiedergutmachung}
+            disabledFor={
+              tab === 'wiedergutmachungen'
+                ? (targetUserId) => penaltyScores[targetUserId as keyof typeof penaltyScores] <= 0
+                : undefined
+            }
+          />
+        ))}
       </section>
 
       <section className="document-block animate-fade-in">
-        <p className="document-label">Straf-Verlauf</p>
-        {recent.length === 0 ? (
-          <p className="law-text">Noch keine Strafen angewendet.</p>
+        <p className="document-label">Timeline</p>
+        {timeline.length === 0 ? (
+          <p className="law-text">Noch keine Einträge — der Katalog wartet geduldig.</p>
         ) : (
-          <ul className="penalty-history">
-            {recent.map((entry) => (
-              <li key={entry.id} className="penalty-history-item">
-                <div>
-                  <p className="penalty-history-title">{entry.title}</p>
+          <ul className="penalty-timeline">
+            {timeline.map((entry) => (
+              <li
+                key={entry.id}
+                className={`penalty-timeline-item penalty-timeline-item--${entry.kind}`}
+              >
+                <span
+                  className={`penalty-timeline-delta ${entry.delta > 0 ? 'penalty-timeline-delta--plus' : 'penalty-timeline-delta--minus'}`}
+                >
+                  {formatTimelineDelta(entry.delta)}
+                </span>
+                <div className="penalty-timeline-body">
+                  <p className="penalty-history-title">{entry.label}</p>
                   <p className="penalty-history-meta">
                     {entry.targetUserName}
-                    {entry.points > 0 ? ` · +${entry.points} P` : ` · ${entry.points} P`}
-                    {' · '}
-                    von {entry.appliedByUserName}
+                    {entry.appliedByUserName !== 'System' && ` · von ${entry.appliedByUserName}`}
                   </p>
                 </div>
-                <time className="penalty-history-time">{formatDateTime(entry.appliedAt)}</time>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="document-block animate-fade-in">
-        <p className="document-label">Beziehungsmonate — Abzüge</p>
-        {penaltyMonthHistory.length === 0 ? (
-          <p className="law-text">Noch kein Beziehungsmonats-Abzug verarbeitet.</p>
-        ) : (
-          <ul className="penalty-month-history">
-            {penaltyMonthHistory.map((entry) => (
-              <li key={entry.id} className="penalty-month-history-item">
-                <div>
-                  <p className="penalty-history-title">
-                    {formatDate(parseDateKey(entry.anniversaryDate).toISOString())}
-                  </p>
-                  <p className="penalty-history-meta">
-                    Marie {entry.scoresBefore.marie} → {entry.scoresAfter.marie}
-                    {' · '}
-                    Nico {entry.scoresBefore.nico} → {entry.scoresAfter.nico}
-                  </p>
-                </div>
-                <span className="penalty-month-badge">−1 je Person</span>
+                <time className="penalty-history-time">{formatDate(entry.at)}</time>
               </li>
             ))}
           </ul>

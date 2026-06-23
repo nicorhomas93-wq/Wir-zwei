@@ -1,5 +1,5 @@
 import type { AppData, Memory, Moodboard, MoodboardItem, PenaltyApplication, PlanEvent, Thought } from '../types'
-import { PENALTY_POINTS } from '../content/strafkatalog'
+import { POINT_DELTA } from '../content/strafkatalog'
 import { recordUserActivity } from './meta'
 import { getStore, syncAppData } from './sync'
 
@@ -183,11 +183,15 @@ export function deleteMoodboardItem(boardId: string, itemId: string): void {
 }
 
 export function applyPenalty(
-  penalty: Omit<PenaltyApplication, 'id' | 'appliedAt' | 'points'> & { points?: number }
+  penalty: Omit<PenaltyApplication, 'id' | 'appliedAt' | 'points' | 'kind'> & {
+    points?: number
+    kind?: PenaltyApplication['kind']
+  }
 ): PenaltyApplication {
   const entry: PenaltyApplication = {
     ...penalty,
-    points: PENALTY_POINTS,
+    kind: penalty.kind ?? 'strafe',
+    points: POINT_DELTA,
     id: crypto.randomUUID(),
     appliedAt: new Date().toISOString(),
   }
@@ -195,8 +199,41 @@ export function applyPenalty(
   recordUserActivity(penalty.appliedByUserId)
   syncAppData((data) => {
     const scores = { ...data.penaltyScores }
-    if (penalty.targetUserId === 'marie') scores.marie += PENALTY_POINTS
-    else if (penalty.targetUserId === 'nico') scores.nico += PENALTY_POINTS
+    if (penalty.targetUserId === 'marie') scores.marie += POINT_DELTA
+    else if (penalty.targetUserId === 'nico') scores.nico += POINT_DELTA
+
+    return {
+      ...data,
+      penaltyScores: scores,
+      penaltyApplications: [entry, ...data.penaltyApplications.filter((item) => item.id !== entry.id)],
+    }
+  })
+
+  return entry
+}
+
+/** Wiedergutmachung aus dem Katalog — immer −1, nie unter 0. */
+export function applyRedemption(
+  params: Omit<PenaltyApplication, 'id' | 'appliedAt' | 'points' | 'kind'>
+): PenaltyApplication | null {
+  const store = getStore()
+  const current =
+    params.targetUserId === 'marie' ? store.penaltyScores.marie : store.penaltyScores.nico
+  if (current <= 0) return null
+
+  const entry: PenaltyApplication = {
+    ...params,
+    kind: 'wiedergutmachung',
+    points: -POINT_DELTA,
+    id: crypto.randomUUID(),
+    appliedAt: new Date().toISOString(),
+  }
+
+  recordUserActivity(params.appliedByUserId)
+  syncAppData((data) => {
+    const scores = { ...data.penaltyScores }
+    if (params.targetUserId === 'marie') scores.marie = Math.max(0, scores.marie - POINT_DELTA)
+    else if (params.targetUserId === 'nico') scores.nico = Math.max(0, scores.nico - POINT_DELTA)
 
     return {
       ...data,
@@ -218,6 +255,7 @@ export function grantManualPenaltyPoint(params: {
 }): PenaltyApplication {
   return applyPenalty({
     penaltyId: 'manual-grant',
+    kind: 'manuell',
     title: params.note?.trim() || 'Manuell vergeben',
     targetUserId: params.targetUserId,
     targetUserName: params.targetUserName,
@@ -226,7 +264,7 @@ export function grantManualPenaltyPoint(params: {
   })
 }
 
-/** −1 Punkt manuell abbauen (Wiedergutmachung / erledigt) — nie unter 0. */
+/** −1 Punkt manuell abbauen — nie unter 0. */
 export function deductManualPenaltyPoint(params: {
   targetUserId: string
   targetUserName: string
@@ -234,37 +272,14 @@ export function deductManualPenaltyPoint(params: {
   appliedByUserName: string
   note?: string
 }): PenaltyApplication | null {
-  const store = getStore()
-  const current =
-    params.targetUserId === 'marie' ? store.penaltyScores.marie : store.penaltyScores.nico
-  if (current <= 0) return null
-
-  const entry: PenaltyApplication = {
-    id: crypto.randomUUID(),
+  return applyRedemption({
     penaltyId: 'manual-deduct',
     title: params.note?.trim() || 'Manuell abgebaut',
-    points: -PENALTY_POINTS,
     targetUserId: params.targetUserId,
     targetUserName: params.targetUserName,
     appliedByUserId: params.appliedByUserId,
     appliedByUserName: params.appliedByUserName,
-    appliedAt: new Date().toISOString(),
-  }
-
-  recordUserActivity(params.appliedByUserId)
-  syncAppData((data) => {
-    const scores = { ...data.penaltyScores }
-    if (params.targetUserId === 'marie') scores.marie = Math.max(0, scores.marie - PENALTY_POINTS)
-    else if (params.targetUserId === 'nico') scores.nico = Math.max(0, scores.nico - PENALTY_POINTS)
-
-    return {
-      ...data,
-      penaltyScores: scores,
-      penaltyApplications: [entry, ...data.penaltyApplications.filter((item) => item.id !== entry.id)],
-    }
   })
-
-  return entry
 }
 
 export function getPenaltyApplications(): PenaltyApplication[] {

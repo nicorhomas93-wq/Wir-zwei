@@ -1,4 +1,4 @@
-import type { AppData, Moodboard, MoodboardItem } from '../types'
+import type { AppData, Moodboard, MoodboardItem, PenaltyApplication } from '../types'
 import {
   deriveScoresFromApplications,
   EMPTY_PENALTY_SCORES,
@@ -95,6 +95,22 @@ function mergePenalties(
   )
 }
 
+function normalizePenaltyApplication(entry: PenaltyApplication): PenaltyApplication {
+  const kind =
+    entry.kind ??
+    (entry.penaltyId.startsWith('w-') || entry.penaltyId === 'manual-deduct' || entry.points < 0
+      ? 'wiedergutmachung'
+      : entry.penaltyId === 'manual-grant'
+        ? 'manuell'
+        : 'strafe')
+
+  return {
+    ...entry,
+    kind,
+    points: entry.points < 0 ? -1 : 1,
+  }
+}
+
 function buildPenaltyFields(raw: Partial<AppData>): Pick<
   AppData,
   'penaltyScores' | 'penaltyMeta' | 'penaltyMonthHistory'
@@ -113,13 +129,14 @@ function buildPenaltyFields(raw: Partial<AppData>): Pick<
 }
 
 export function normalizeAppData(raw: Partial<AppData>): AppData {
+  const penaltyApplications = (raw.penaltyApplications ?? []).map(normalizePenaltyApplication)
   const base: AppData = {
     memories: raw.memories ?? [],
     thoughts: raw.thoughts ?? [],
     events: raw.events ?? [],
     moodboards: (raw.moodboards ?? []).map(normalizeMoodboard),
-    penaltyApplications: raw.penaltyApplications ?? [],
-    ...buildPenaltyFields(raw),
+    penaltyApplications,
+    ...buildPenaltyFields({ ...raw, penaltyApplications }),
   }
 
   if (!raw.penaltyScores && base.penaltyScores.marie === 0 && base.penaltyScores.nico === 0) {
