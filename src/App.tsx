@@ -12,6 +12,7 @@ import Moodboards from './pages/Moodboards'
 import Planning from './pages/Planning'
 import Strafkatalog from './pages/Strafkatalog'
 import Thoughts from './pages/Thoughts'
+import Zufallsdate from './pages/Zufallsdate'
 
 function LoginRoute() {
   const { user } = useAuth()
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/anker" element={<Anker />} />
             <Route path="/beziehungsgesetzbuch" element={<Beziehungsgesetzbuch />} />
             <Route path="/strafkatalog" element={<Strafkatalog />} />
+            <Route path="/zufallsdate" element={<Zufallsdate />} />
             <Route path="/erinnerungen" element={<Memories />} />
             <Route path="/gedanken" element={<Thoughts />} />
             <Route path="/moodboards" element={<Moodboards />} />

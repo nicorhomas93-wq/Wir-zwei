@@ -10,6 +10,11 @@ import { getEnergyLevel } from '../utils/energy'
 
 const documentSections = [
   {
+    to: '/zufallsdate',
+    title: 'Zufallsdate',
+    description: 'Heute machen wir…',
+  },
+  {
     to: '/anker',
     title: 'ANKER',
     description: 'Wenn der Kopf laut wird…',

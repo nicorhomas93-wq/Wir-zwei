@@ -1882,6 +1882,145 @@
       color: rgba(255, 255, 255, 0.62);
     }
   }
+
+  .zufallsdate-page {
+    @apply space-y-5;
+  }
+
+  .zufallsdate-header .document-subtitle {
+    @apply mt-1.5;
+  }
+
+  .zufallsdate-stage {
+    @apply p-5;
+  }
+
+  .zufallsdate-filters {
+    @apply flex flex-wrap gap-1.5 mb-5;
+  }
+
+  .zufallsdate-filter {
+    @apply text-xs rounded-full px-3 py-1.5;
+    color: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    transition: color 300ms ease-in-out, border-color 300ms ease-in-out, background 300ms ease-in-out;
+  }
+
+  .zufallsdate-filter:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .zufallsdate-filter--active {
+    color: rgba(200, 236, 212, 0.92);
+    border-color: rgba(46, 204, 113, 0.28);
+    background: rgba(46, 204, 113, 0.1);
+  }
+
+  .zufallsdate-filter--active.zufallsdate-filter--dates {
+    color: rgba(210, 225, 255, 0.92);
+    border-color: rgba(120, 160, 255, 0.28);
+    background: rgba(120, 160, 255, 0.1);
+  }
+
+  .zufallsdate-filter--active.zufallsdate-filter--liebe {
+    color: rgba(255, 220, 230, 0.92);
+    border-color: rgba(255, 120, 160, 0.28);
+    background: rgba(255, 120, 160, 0.1);
+  }
+
+  .zufallsdate-result {
+    @apply rounded-2xl px-4 py-8 text-center min-h-[11rem] flex flex-col items-center justify-center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: box-shadow 400ms ease-in-out, border-color 400ms ease-in-out;
+  }
+
+  .zufallsdate-result--rolling {
+    border-color: rgba(46, 204, 113, 0.12);
+    box-shadow: 0 0 24px rgba(46, 204, 113, 0.08);
+  }
+
+  .zufallsdate-result--reveal {
+    animation: zufallsdateReveal 520ms ease-out;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 28px rgba(46, 204, 113, 0.1);
+  }
+
+  .zufallsdate-result-kicker {
+    @apply text-[0.625rem] uppercase tracking-[0.16em] mb-3;
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .zufallsdate-result-text {
+    @apply text-lg leading-relaxed font-medium px-1;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.01em;
+  }
+
+  .zufallsdate-result-text--idle {
+    @apply text-base font-normal;
+    color: rgba(255, 255, 255, 0.52);
+  }
+
+  .zufallsdate-result-text--shimmer {
+    color: rgba(255, 255, 255, 0.55);
+    animation: zufallsdateShimmer 900ms ease-in-out infinite;
+  }
+
+  .zufallsdate-result-hint {
+    @apply text-xs mt-3;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .zufallsdate-category-pill {
+    @apply inline-block text-[0.5625rem] uppercase tracking-[0.14em] rounded-full px-2.5 py-1 mb-4;
+    color: rgba(200, 236, 212, 0.85);
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.18);
+  }
+
+  .zufallsdate-category-pill--dates {
+    color: rgba(210, 225, 255, 0.88);
+    background: rgba(120, 160, 255, 0.1);
+    border-color: rgba(120, 160, 255, 0.18);
+  }
+
+  .zufallsdate-category-pill--liebe {
+    color: rgba(255, 220, 230, 0.9);
+    background: rgba(255, 120, 160, 0.1);
+    border-color: rgba(255, 120, 160, 0.18);
+  }
+
+  .zufallsdate-actions {
+    @apply mt-5;
+  }
+
+  .zufallsdate-roll-btn {
+    @apply w-full rounded-2xl py-4 px-4 text-sm font-medium;
+    color: rgba(255, 255, 255, 0.94);
+    background: linear-gradient(180deg, rgba(28, 48, 34, 0.95) 0%, rgba(18, 38, 26, 0.98) 100%);
+    border: 1px solid rgba(46, 204, 113, 0.28);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.35),
+      0 0 20px rgba(46, 204, 113, 0.12);
+    transition: transform 150ms ease-in-out, box-shadow 350ms ease-in-out, opacity 300ms ease-in-out;
+  }
+
+  .zufallsdate-roll-btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .zufallsdate-roll-btn:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .zufallsdate-cooldown {
+    @apply text-center text-xs mt-3;
+    color: rgba(255, 255, 255, 0.28);
+  }
 }
 
 @keyframes pageEnter {
@@ -2147,6 +2286,22 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+@keyframes zufallsdateReveal {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zufallsdateShimmer {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
 }
 
 @keyframes dreamFloatA {
