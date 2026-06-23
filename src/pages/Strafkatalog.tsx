@@ -11,7 +11,7 @@ import {
   WIEDERGUTMACHUNGEN,
 } from '../content/strafkatalog'
 import { useAppData } from '../storage/DataContext'
-import { applyPenalty, applyRedemption } from '../storage/db'
+import { applyPenalty, applyRedemption, deductManualPenaltyPoint, grantManualPenaltyPoint } from '../storage/db'
 import { formatDate } from '../utils/formatDate'
 import { buildPenaltyTimeline, formatMonthLabel, formatTimelineDelta } from '../utils/penaltyTimeline'
 import {
@@ -162,6 +162,38 @@ export default function Strafkatalog() {
     window.setTimeout(() => setAppliedId(null), 1200)
   }
 
+  const handleManualGrant = (targetUserId: string, targetUserName: string) => {
+    if (!user) return
+    if (!window.confirm(`+${POINT_DELTA} Punkt manuell an ${targetUserName} vergeben?`)) return
+
+    grantManualPenaltyPoint({
+      targetUserId,
+      targetUserName,
+      appliedByUserId: user.id,
+      appliedByUserName: user.name,
+    })
+  }
+
+  const handleManualDeduct = (targetUserId: string, targetUserName: string) => {
+    if (!user) return
+    if (penaltyScores[targetUserId as keyof typeof penaltyScores] <= 0) return
+
+    if (
+      !window.confirm(
+        `−${POINT_DELTA} Punkt bei ${targetUserName} manuell abbauen? (Wiedergutmachung / erledigt)`
+      )
+    ) {
+      return
+    }
+
+    deductManualPenaltyPoint({
+      targetUserId,
+      targetUserName,
+      appliedByUserId: user.id,
+      appliedByUserName: user.name,
+    })
+  }
+
   return (
     <div className="document-page space-y-8 pb-16">
       <div>
@@ -188,6 +220,23 @@ export default function Strafkatalog() {
               <p className="penalty-score-label">
                 {penaltyScores[entry.id] === 1 ? 'Punkt' : 'Punkte'}
               </p>
+              <div className="penalty-manual-actions">
+                <button
+                  type="button"
+                  className="penalty-manual-btn penalty-manual-btn--grant tap-active"
+                  onClick={() => handleManualGrant(entry.id, entry.name)}
+                >
+                  +1 vergeben
+                </button>
+                <button
+                  type="button"
+                  className="penalty-manual-btn penalty-manual-btn--deduct tap-active"
+                  onClick={() => handleManualDeduct(entry.id, entry.name)}
+                  disabled={penaltyScores[entry.id] <= 0}
+                >
+                  −1 abbauen
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -214,6 +263,10 @@ export default function Strafkatalog() {
             </p>
           </div>
         </div>
+
+        <p className="penalty-counter-hint">
+          Manuell: +1 vergeben oder −1 abbauen direkt am Counter — zusätzlich zu den Katalog-Tabs.
+        </p>
       </section>
 
       <section className="animate-fade-in">
