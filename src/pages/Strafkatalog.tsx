@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AnimatedScore from '../components/AnimatedScore'
+import PenaltyMiniTimeline from '../components/PenaltyMiniTimeline'
 import PenaltyToast, { type PenaltyToastItem } from '../components/PenaltyToast'
 import { useAuth } from '../auth/AuthContext'
 import { RELATIONSHIP_START_LABEL } from '../constants/relationship'
@@ -18,8 +19,6 @@ import { formatDate } from '../utils/formatDate'
 import {
   buildPenaltyTimeline,
   formatMonthLabel,
-  formatTimelineDelta,
-  formatTimelineTime,
 } from '../utils/penaltyTimeline'
 import {
   formatAnniversaryLabel,
@@ -352,31 +351,6 @@ export default function Strafkatalog() {
             </p>
           </div>
         </div>
-
-        {miniTimeline.length > 0 && (
-          <div className="penalty-mini-timeline">
-            <p className="penalty-mini-timeline-label">Verlauf</p>
-            <ul className="penalty-mini-timeline-list">
-              {miniTimeline.map((item, index) => (
-                <li
-                  key={item.id}
-                  className={`penalty-mini-timeline-item ${index === 0 ? 'penalty-mini-timeline-item--fresh' : ''}`}
-                >
-                  <span
-                    className={`penalty-mini-timeline-delta ${item.delta > 0 ? 'penalty-mini-timeline-delta--plus' : 'penalty-mini-timeline-delta--minus'}`}
-                  >
-                    {formatTimelineDelta(item.delta)}
-                  </span>
-                  <span className="penalty-mini-timeline-text">
-                    {item.label}
-                    <span className="penalty-mini-timeline-who"> → {item.targetUserName}</span>
-                  </span>
-                  <time className="penalty-mini-timeline-time">{formatTimelineTime(item.at)}</time>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </section>
 
       <section className="animate-fade-in">
@@ -446,6 +420,8 @@ export default function Strafkatalog() {
           />
         ))}
       </section>
+
+      <PenaltyMiniTimeline items={miniTimeline} />
     </div>
   )
 }

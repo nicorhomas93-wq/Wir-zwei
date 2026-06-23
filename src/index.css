@@ -1383,6 +1383,69 @@
     color: rgba(255, 255, 255, 0.68);
   }
 
+  .penalty-mini-timeline-panel {
+    @apply p-0 overflow-hidden;
+  }
+
+  .penalty-mini-timeline-toggle {
+    @apply w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left;
+    transition: background 250ms ease-in-out;
+  }
+
+  .penalty-mini-timeline-toggle-main {
+    @apply min-w-0 flex-1;
+  }
+
+  .penalty-mini-timeline-toggle-label {
+    @apply text-[0.5625rem] uppercase tracking-[0.14em];
+    color: rgba(46, 204, 113, 0.45);
+  }
+
+  .penalty-mini-timeline-toggle-meta {
+    @apply text-xs mt-1;
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .penalty-mini-timeline-preview {
+    @apply text-xs mt-1.5 truncate leading-snug;
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .penalty-mini-timeline-preview-delta {
+    @apply inline-block mr-1.5 px-1.5 py-0.5 rounded-md text-[0.625rem] font-semibold tabular-nums align-middle;
+  }
+
+  .penalty-mini-timeline-chevron {
+    @apply shrink-0 text-lg leading-none;
+    color: rgba(255, 255, 255, 0.32);
+    transform: rotate(90deg);
+    transition: transform 280ms ease-in-out, color 280ms ease-in-out;
+  }
+
+  .penalty-mini-timeline-chevron--open {
+    transform: rotate(-90deg);
+    color: rgba(46, 204, 113, 0.55);
+  }
+
+  .penalty-mini-timeline-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 320ms ease-in-out;
+  }
+
+  .penalty-mini-timeline-body--open {
+    grid-template-rows: 1fr;
+  }
+
+  .penalty-mini-timeline-body-inner {
+    overflow: hidden;
+  }
+
+  .penalty-mini-timeline-body--open .penalty-mini-timeline-body-inner {
+    @apply px-4 pb-4 pt-1;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
   .penalty-mini-timeline {
     @apply mt-3 pt-3;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -1930,6 +1993,39 @@
     background: rgba(255, 120, 160, 0.1);
   }
 
+  .zufallsdate-vibes-wrap {
+    @apply mb-5 pb-4;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .zufallsdate-vibes-label {
+    @apply text-[0.5625rem] uppercase tracking-[0.14em] mb-2;
+    color: rgba(255, 255, 255, 0.28);
+  }
+
+  .zufallsdate-vibes {
+    @apply flex flex-wrap gap-1.5;
+  }
+
+  .zufallsdate-vibe {
+    @apply text-[0.6875rem] rounded-full px-2.5 py-1;
+    color: rgba(255, 255, 255, 0.38);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    transition: color 250ms ease-in-out, border-color 250ms ease-in-out, background 250ms ease-in-out;
+  }
+
+  .zufallsdate-vibe:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .zufallsdate-vibe--active {
+    color: rgba(255, 255, 255, 0.78);
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
   .zufallsdate-result {
     @apply rounded-2xl px-4 py-8 text-center min-h-[11rem] flex flex-col items-center justify-center;
     background: rgba(255, 255, 255, 0.02);
@@ -1938,14 +2034,26 @@
   }
 
   .zufallsdate-result--rolling {
-    border-color: rgba(46, 204, 113, 0.12);
-    box-shadow: 0 0 24px rgba(46, 204, 113, 0.08);
+    border-color: rgba(46, 204, 113, 0.1);
+    box-shadow: 0 0 18px rgba(46, 204, 113, 0.06);
   }
 
   .zufallsdate-result--reveal {
-    animation: zufallsdateReveal 520ms ease-out;
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 28px rgba(46, 204, 113, 0.1);
+    border-color: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 0 32px rgba(46, 204, 113, 0.14);
+    animation: zufallsdateCardGlow 320ms ease-out forwards;
+  }
+
+  .zufallsdate-result--reveal-dates {
+    box-shadow: 0 0 32px rgba(120, 160, 255, 0.12);
+  }
+
+  .zufallsdate-result--reveal-liebe {
+    box-shadow: 0 0 32px rgba(255, 120, 160, 0.12);
+  }
+
+  .zufallsdate-shuffle-slot {
+    @apply w-full min-h-[4.5rem] flex items-center justify-center overflow-hidden;
   }
 
   .zufallsdate-result-kicker {
@@ -1964,14 +2072,31 @@
     color: rgba(255, 255, 255, 0.52);
   }
 
-  .zufallsdate-result-text--shimmer {
-    color: rgba(255, 255, 255, 0.55);
-    animation: zufallsdateShimmer 900ms ease-in-out infinite;
+  .zufallsdate-result-text--shuffle {
+    @apply text-base font-normal;
+    color: rgba(255, 255, 255, 0.62);
+    will-change: transform, opacity;
+    animation: zufallsdateShuffleTick 100ms ease-out both;
+  }
+
+  .zufallsdate-result-text--final {
+    @apply text-xl;
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+
+  .zufallsdate-result-text--final-active {
+    animation: zufallsdateFinalDrop 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
   .zufallsdate-result-hint {
     @apply text-xs mt-3;
     color: rgba(255, 255, 255, 0.35);
+    opacity: 0;
+  }
+
+  .zufallsdate-result-hint--drop {
+    animation: zufallsdateHintIn 240ms ease-out 120ms forwards;
   }
 
   .zufallsdate-category-pill {
@@ -1979,6 +2104,11 @@
     color: rgba(200, 236, 212, 0.85);
     background: rgba(46, 204, 113, 0.1);
     border: 1px solid rgba(46, 204, 113, 0.18);
+    opacity: 0;
+  }
+
+  .zufallsdate-category-pill--drop {
+    animation: zufallsdatePillIn 220ms ease-out 60ms forwards;
   }
 
   .zufallsdate-category-pill--dates {
@@ -2009,7 +2139,15 @@
   }
 
   .zufallsdate-roll-btn:active:not(:disabled) {
-    transform: scale(0.98);
+    transform: scale(0.97);
+  }
+
+  .zufallsdate-roll-btn--busy {
+    transform: scale(0.97);
+    opacity: 0.88;
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      0 0 12px rgba(46, 204, 113, 0.08);
   }
 
   .zufallsdate-roll-btn:disabled {
@@ -2288,20 +2426,57 @@
   }
 }
 
-@keyframes zufallsdateReveal {
+@keyframes zufallsdateShuffleTick {
   0% {
-    opacity: 0.5;
-    transform: scale(0.98);
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes zufallsdateShimmer {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.85; }
+@keyframes zufallsdateFinalDrop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes zufallsdateCardGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(46, 204, 113, 0);
+  }
+  100% {
+    box-shadow: 0 0 32px rgba(46, 204, 113, 0.14);
+  }
+}
+
+@keyframes zufallsdatePillIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes zufallsdateHintIn {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes dreamFloatA {

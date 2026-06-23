@@ -2,10 +2,32 @@ export type ActivityCategory = 'alltag' | 'dates' | 'liebe'
 
 export type ActivityFilter = 'all' | ActivityCategory
 
+export type ActivityVibe = 'ruhig' | 'draussen' | 'spontan' | 'zuhause'
+
 export interface ActivityCategoryMeta {
   id: ActivityCategory
   label: string
   hint: string
+}
+
+export interface ActivityVibeMeta {
+  id: ActivityVibe
+  label: string
+}
+
+export interface ActivityEntry {
+  text: string
+  vibes: ActivityVibe[]
+}
+
+export interface ZufallsdateQuery {
+  category: ActivityFilter
+  vibes: ActivityVibe[]
+}
+
+export interface RandomActivityResult {
+  category: ActivityCategory
+  text: string
 }
 
 export const ACTIVITY_CATEGORIES: Record<ActivityCategory, ActivityCategoryMeta> = {
@@ -26,69 +48,97 @@ export const ACTIVITY_CATEGORIES: Record<ActivityCategory, ActivityCategoryMeta>
   },
 }
 
-export const ACTIVITIES: Record<ActivityCategory, readonly string[]> = {
-  alltag: [
-    'Spazieren gehen ohne Ziel',
-    'Zusammen einkaufen + 1 unnötige Sache holen',
-    'Kaffee holen und irgendwo hinsetzen',
-    '30 Minuten nur reden – ohne Handy',
-    'Zusammen kochen (egal was)',
-    'Einen neuen Spazierweg ausprobieren',
-    'Gemeinsam aufräumen – mit Musik',
-    'Einen kurzen Ausflug in die nächste Nachbarschaft',
-    'Etwas backen, das ihr noch nie probiert habt',
-    'Abends die Lichter dimmen und einfach da sein',
-  ],
-  dates: [
-    'Kinoabend – Genre: Zufall',
-    'Restaurant ausprobieren',
-    'Nachtfahrt ohne Ziel',
-    'Spaziergang + Deep Talk',
-    'Heute entscheidet dein Partner alles',
-    'Picknick – auch wenn es drinnen ist',
-    'Einen Ort besuchen, den ihr noch nie wart',
-    'Spieleabend zu zweit',
-    'Sonnenuntergang irgendwo suchen',
-    'Einen halben Tag wie Touristen in eurer Stadt',
-  ],
-  liebe: [
-    '10 Minuten einfach nur umarmen',
-    'Sag deinem Partner eine Sache, die du selten aussprichst',
-    'Blickkontakt für 1 Minute halten',
-    'Kleine Überraschung planen',
-    'Bewusst 15 Minuten Nähe ohne Ablenkung',
-    'Schreibt euch kurz auf, was ihr aneinander schätzt',
-    'Gemeinsam eine Playlist für heute Abend bauen',
-    'Eine Erinnerung teilen, die ihr selten erwähnt',
-    'Hand in Hand – auch wenn ihr nur zu Hause seid',
-    'Einem Partner heute bewusst zuhören, ohne zu unterbrechen',
-  ],
+export const ACTIVITY_VIBES: ActivityVibeMeta[] = [
+  { id: 'ruhig', label: 'Ruhig' },
+  { id: 'draussen', label: 'Draußen' },
+  { id: 'spontan', label: 'Spontan' },
+  { id: 'zuhause', label: 'Zuhause' },
+]
+
+function a(text: string, vibes: ActivityVibe[]): ActivityEntry {
+  return { text, vibes }
 }
 
-export interface RandomActivityResult {
-  category: ActivityCategory
-  text: string
+export const ACTIVITIES: Record<ActivityCategory, readonly ActivityEntry[]> = {
+  alltag: [
+    a('Spazieren gehen ohne Ziel', ['draussen', 'spontan', 'ruhig']),
+    a('Zusammen einkaufen + 1 unnötige Sache holen', ['draussen', 'spontan']),
+    a('Kaffee holen und irgendwo hinsetzen', ['draussen', 'spontan', 'ruhig']),
+    a('30 Minuten nur reden – ohne Handy', ['ruhig', 'zuhause']),
+    a('Zusammen kochen (egal was)', ['zuhause', 'spontan']),
+    a('Einen neuen Spazierweg ausprobieren', ['draussen', 'spontan']),
+    a('Gemeinsam aufräumen – mit Musik', ['zuhause', 'spontan']),
+    a('Einen kurzen Ausflug in die nächste Nachbarschaft', ['draussen', 'spontan']),
+    a('Etwas backen, das ihr noch nie probiert habt', ['zuhause', 'spontan']),
+    a('Abends die Lichter dimmen und einfach da sein', ['zuhause', 'ruhig']),
+  ],
+  dates: [
+    a('Kinoabend – Genre: Zufall', ['draussen', 'spontan']),
+    a('Restaurant ausprobieren', ['draussen', 'spontan']),
+    a('Nachtfahrt ohne Ziel', ['draussen', 'spontan']),
+    a('Spaziergang + Deep Talk', ['draussen', 'ruhig']),
+    a('Heute entscheidet dein Partner alles', ['spontan']),
+    a('Picknick – auch wenn es drinnen ist', ['draussen', 'ruhig', 'spontan']),
+    a('Einen Ort besuchen, den ihr noch nie wart', ['draussen', 'spontan']),
+    a('Spieleabend zu zweit', ['zuhause', 'ruhig']),
+    a('Sonnenuntergang irgendwo suchen', ['draussen', 'ruhig']),
+    a('Einen halben Tag wie Touristen in eurer Stadt', ['draussen', 'spontan']),
+  ],
+  liebe: [
+    a('10 Minuten einfach nur umarmen', ['zuhause', 'ruhig']),
+    a('Sag deinem Partner eine Sache, die du selten aussprichst', ['ruhig', 'zuhause']),
+    a('Blickkontakt für 1 Minute halten', ['ruhig', 'zuhause']),
+    a('Kleine Überraschung planen', ['spontan', 'zuhause']),
+    a('Bewusst 15 Minuten Nähe ohne Ablenkung', ['ruhig', 'zuhause']),
+    a('Schreibt euch kurz auf, was ihr aneinander schätzt', ['ruhig', 'zuhause']),
+    a('Gemeinsam eine Playlist für heute Abend bauen', ['zuhause', 'spontan']),
+    a('Eine Erinnerung teilen, die ihr selten erwähnt', ['ruhig']),
+    a('Hand in Hand – auch wenn ihr nur zu Hause seid', ['zuhause', 'ruhig']),
+    a('Einem Partner heute bewusst zuhören, ohne zu unterbrechen', ['ruhig', 'zuhause']),
+  ],
 }
 
 function pickFrom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)]
 }
 
-function poolForFilter(filter: ActivityFilter): RandomActivityResult[] {
+function categoryPool(filter: ActivityFilter): RandomActivityResult[] {
   if (filter === 'all') {
     return (Object.keys(ACTIVITIES) as ActivityCategory[]).flatMap((category) =>
-      ACTIVITIES[category].map((text) => ({ category, text }))
+      ACTIVITIES[category].map((entry) => ({ category, text: entry.text }))
     )
   }
 
-  return ACTIVITIES[filter].map((text) => ({ category: filter, text }))
+  return ACTIVITIES[filter].map((entry) => ({ category: filter, text: entry.text }))
+}
+
+function matchesVibes(entry: ActivityEntry, vibes: ActivityVibe[]): boolean {
+  if (vibes.length === 0) return true
+  return vibes.some((vibe) => entry.vibes.includes(vibe))
+}
+
+export function poolForQuery(query: ZufallsdateQuery): RandomActivityResult[] {
+  const categories =
+    query.category === 'all'
+      ? (Object.keys(ACTIVITIES) as ActivityCategory[])
+      : [query.category]
+
+  const pool = categories.flatMap((category) =>
+    ACTIVITIES[category]
+      .filter((entry) => matchesVibes(entry, query.vibes))
+      .map((entry) => ({ category, text: entry.text }))
+  )
+
+  if (pool.length > 0) return pool
+
+  return categoryPool(query.category)
 }
 
 export function pickRandomActivity(
-  filter: ActivityFilter,
+  query: ZufallsdateQuery,
   exclude?: RandomActivityResult | null
 ): RandomActivityResult {
-  const pool = poolForFilter(filter)
+  const pool = poolForQuery(query)
 
   if (pool.length === 0) {
     return { category: 'alltag', text: 'Einfach zusammen sein.' }
@@ -103,4 +153,30 @@ export function pickRandomActivity(
   )
 
   return pickFrom(filtered.length > 0 ? filtered : pool)
+}
+
+export function pickShufflePreviews(
+  query: ZufallsdateQuery,
+  final: RandomActivityResult,
+  count: number
+): string[] {
+  const pool = poolForQuery(query)
+  let candidates = pool.map((item) => item.text).filter((text) => text !== final.text)
+
+  if (candidates.length === 0) {
+    candidates = pool.map((item) => item.text)
+  }
+
+  const shuffled = [...candidates]
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+
+  const picks: string[] = []
+  for (let i = 0; i < count; i += 1) {
+    picks.push(shuffled[i % shuffled.length])
+  }
+
+  return picks
 }
