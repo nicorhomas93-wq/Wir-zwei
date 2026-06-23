@@ -1,4 +1,10 @@
 import type { AppData, Moodboard, MoodboardItem } from '../types'
+import {
+  deriveScoresFromApplications,
+  EMPTY_PENALTY_SCORES,
+  mergePenaltyState,
+  processRelationshipMonthDeductions,
+} from './penaltyState'
 
 type WithId = { id: string; createdAt: string }
 
@@ -70,13 +76,57 @@ function mergeMoodboards(
   )
 }
 
-export function normalizeAppData(raw: Partial<AppData>): AppData {
+function mergePenalties(
+  remote: AppData['penaltyApplications'],
+  local: AppData['penaltyApplications'],
+  preferRemote: boolean
+): AppData['penaltyApplications'] {
+  const map = new Map<string, AppData['penaltyApplications'][number]>()
+  for (const item of remote) map.set(item.id, item)
+  for (const item of local) {
+    if (preferRemote) {
+      if (!map.has(item.id)) map.set(item.id, item)
+    } else {
+      map.set(item.id, item)
+    }
+  }
+  return [...map.values()].sort(
+    (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
+  )
+}
+
+function buildPenaltyFields(raw: Partial<AppData>): Pick<
+  AppData,
+  'penaltyScores' | 'penaltyMeta' | 'penaltyMonthHistory'
+> {
+  const penaltyApplications = raw.penaltyApplications ?? []
+  const penaltyScores = raw.penaltyScores ?? deriveScoresFromApplications(penaltyApplications)
+
   return {
+    penaltyScores: {
+      marie: Math.max(0, penaltyScores.marie ?? 0),
+      nico: Math.max(0, penaltyScores.nico ?? 0),
+    },
+    penaltyMeta: raw.penaltyMeta ?? { lastProcessedAnniversary: null },
+    penaltyMonthHistory: raw.penaltyMonthHistory ?? [],
+  }
+}
+
+export function normalizeAppData(raw: Partial<AppData>): AppData {
+  const base: AppData = {
     memories: raw.memories ?? [],
     thoughts: raw.thoughts ?? [],
     events: raw.events ?? [],
     moodboards: (raw.moodboards ?? []).map(normalizeMoodboard),
+    penaltyApplications: raw.penaltyApplications ?? [],
+    ...buildPenaltyFields(raw),
   }
+
+  if (!raw.penaltyScores && base.penaltyScores.marie === 0 && base.penaltyScores.nico === 0) {
+    base.penaltyScores = deriveScoresFromApplications(base.penaltyApplications)
+  }
+
+  return processRelationshipMonthDeductions(base)
 }
 
 export interface MergeOptions {
@@ -93,7 +143,18 @@ export function mergeAppData(
   const preferRemote = options.preferRemote ?? false
   const mergeList = preferRemote ? mergeByIdSafe : mergeByIdUnion
 
-  return {
+  const penaltyApplications = mergePenalties(
+    remote.penaltyApplications,
+    local.penaltyApplications,
+    preferRemote
+  )
+
+  const mergedPenalty = mergePenaltyState(
+    { ...remote, penaltyApplications },
+    { ...local, penaltyApplications }
+  )
+
+  const merged: AppData = {
     memories: mergeList(remote.memories, local.memories).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     ),
@@ -104,7 +165,11 @@ export function mergeAppData(
     events: mergeList(remote.events, local.events).sort((a, b) =>
       a.date.localeCompare(b.date)
     ),
+    penaltyApplications,
+    ...mergedPenalty,
   }
+
+  return processRelationshipMonthDeductions(merged)
 }
 
 /** Firestore lehnt undefined in verschachtelten Objekten ab */
@@ -129,4 +194,10 @@ export const SYNCED_COLLECTIONS = [
   'thoughts',
   'moodboards',
   'events',
+  'penaltyApplications',
+  'penaltyScores',
+  'penaltyMeta',
+  'penaltyMonthHistory',
 ] as const satisfies readonly (keyof AppData)[]
+
+export { EMPTY_PENALTY_SCORES }

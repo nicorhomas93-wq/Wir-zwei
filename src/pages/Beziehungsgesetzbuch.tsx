@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom'
-import { BEZIEHUNGSGESETZE, STRAFENKATALOG } from '../content/beziehungsgesetzbuch'
+import {
+  BEZIEHUNGSGESETZBUCH,
+  BEZIEHUNGSGESETZE,
+  PDF_INHALTSVERZEICHNIS,
+} from '../content/beziehungsgesetzbuch'
+import LawAccordion from '../components/LawAccordion'
 
 export default function Beziehungsgesetzbuch() {
   return (
-    <div className="document-page space-y-10 pb-16">
+    <div className="document-page space-y-8 pb-16">
       <div>
         <Link to="/" className="text-sm nav-back tap-active">
           ← Home
@@ -14,38 +19,50 @@ export default function Beziehungsgesetzbuch() {
       </div>
 
       <section className="document-block animate-fade-in">
-        <p className="document-label">Inhaltsverzeichnis</p>
+        <p className="document-label">Inhaltsverzeichnis (PDF)</p>
         <ul className="document-toc">
-          {BEZIEHUNGSGESETZE.map((law) => (
-            <li key={law.paragraph}>
-              {law.paragraph} – {law.title}
+          {PDF_INHALTSVERZEICHNIS.map((entry) => (
+            <li key={entry.paragraph}>
+              <a href={`#${BEZIEHUNGSGESETZE.find((law) => law.paragraph === entry.paragraph)?.id ?? ''}`} className="document-toc-link tap-active">
+                {entry.paragraph} – {entry.title}
+              </a>
             </li>
           ))}
-          <li>Strafenkatalog</li>
         </ul>
       </section>
 
-      <section className="space-y-5">
-        {BEZIEHUNGSGESETZE.map((law) => (
-          <article key={law.paragraph} className="law-card card animate-fade-in">
-            <p className="law-paragraph">{law.paragraph}</p>
-            <h2 className="law-title">{law.title}</h2>
-            <p className="law-text">{law.text}</p>
-          </article>
-        ))}
+      <section className="document-block animate-fade-in">
+        <p className="document-label">Kapitel</p>
+        <ul className="document-toc">
+          {BEZIEHUNGSGESETZBUCH.map((chapter) => (
+            <li key={chapter.id}>
+              <a href={`#kapitel-${chapter.id}`} className="document-toc-link tap-active">
+                {chapter.title}
+              </a>
+              {chapter.articles.length > 0 && (
+                <ul className="document-toc-sub">
+                  {chapter.articles.map((article) => (
+                    <li key={article.id}>
+                      {article.paragraph} – {article.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section className="document-block animate-fade-in">
-        <p className="document-label">Strafenkatalog</p>
-        <div className="space-y-3">
-          {STRAFENKATALOG.map((entry) => (
-            <div key={entry.paragraph} className="law-card card">
-              <p className="law-paragraph">{entry.paragraph}</p>
-              <p className="law-text">{entry.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <LawAccordion chapters={BEZIEHUNGSGESETZBUCH} />
+
+      <Link to="/strafkatalog" className="document-link-card card tap-active animate-fade-in">
+        <p className="document-label mb-2">Separater Bereich</p>
+        <h2 className="law-title">Strafkatalog</h2>
+        <p className="law-text mt-1">
+          Interaktive Strafen, Punkte und Beziehungsmonat — nicht Teil des Gesetzbuchs.
+        </p>
+        <p className="document-link-arrow mt-3">Zum Strafkatalog →</p>
+      </Link>
 
       <section className="document-signatures animate-fade-in">
         <p>Unterschrift Marie Paufler: __________</p>

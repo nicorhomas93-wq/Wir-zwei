@@ -10,6 +10,7 @@ import Memories from './pages/Memories'
 import MoodboardDetail from './pages/MoodboardDetail'
 import Moodboards from './pages/Moodboards'
 import Planning from './pages/Planning'
+import Strafkatalog from './pages/Strafkatalog'
 import Thoughts from './pages/Thoughts'
 
 function LoginRoute() {
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/anker" element={<Anker />} />
             <Route path="/beziehungsgesetzbuch" element={<Beziehungsgesetzbuch />} />
+            <Route path="/strafkatalog" element={<Strafkatalog />} />
             <Route path="/erinnerungen" element={<Memories />} />
             <Route path="/gedanken" element={<Thoughts />} />
             <Route path="/moodboards" element={<Moodboards />} />

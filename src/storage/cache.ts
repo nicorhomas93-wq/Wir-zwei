@@ -1,25 +1,22 @@
 import type { AppData } from '../types'
+import { normalizeAppData } from './merge'
 
 const STORAGE_KEY = 'wir-zwei-data'
 
-export const emptyData = (): AppData => ({
-  memories: [],
-  thoughts: [],
-  moodboards: [],
-  events: [],
-})
+export const emptyData = (): AppData =>
+  normalizeAppData({
+    memories: [],
+    thoughts: [],
+    moodboards: [],
+    events: [],
+    penaltyApplications: [],
+  })
 
 export function loadCache(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return emptyData()
-    const parsed = JSON.parse(raw) as Partial<AppData>
-    return {
-      memories: parsed.memories ?? [],
-      thoughts: parsed.thoughts ?? [],
-      moodboards: parsed.moodboards ?? [],
-      events: parsed.events ?? [],
-    }
+    return normalizeAppData(JSON.parse(raw) as Partial<AppData>)
   } catch {
     return emptyData()
   }
@@ -34,6 +31,9 @@ export function hasAnyData(data: AppData): boolean {
     data.memories.length > 0 ||
     data.thoughts.length > 0 ||
     data.moodboards.length > 0 ||
-    data.events.length > 0
+    data.events.length > 0 ||
+    data.penaltyApplications.length > 0 ||
+    data.penaltyScores.marie > 0 ||
+    data.penaltyScores.nico > 0
   )
 }

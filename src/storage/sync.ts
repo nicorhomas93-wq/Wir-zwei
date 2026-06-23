@@ -22,10 +22,17 @@ let syncStarted = false
 const retryQueue: Mutator[] = []
 let flushing = false
 
-let remoteMain: Pick<AppData, 'memories' | 'thoughts' | 'events'> = {
+let remoteMain: Pick<
+  AppData,
+  'memories' | 'thoughts' | 'events' | 'penaltyApplications' | 'penaltyScores' | 'penaltyMeta' | 'penaltyMonthHistory'
+> = {
   memories: [],
   thoughts: [],
   events: [],
+  penaltyApplications: [],
+  penaltyScores: { marie: 0, nico: 0 },
+  penaltyMeta: { lastProcessedAnniversary: null },
+  penaltyMonthHistory: [],
 }
 let remoteMoodboards: AppData['moodboards'] = []
 let mainReady = false
@@ -107,6 +114,10 @@ function splitForCloud(data: AppData) {
       memories: data.memories,
       thoughts: data.thoughts,
       events: data.events,
+      penaltyApplications: data.penaltyApplications,
+      penaltyScores: data.penaltyScores,
+      penaltyMeta: data.penaltyMeta,
+      penaltyMonthHistory: data.penaltyMonthHistory,
     }),
     moodboards: sanitizeForFirestore({
       moodboards: data.moodboards,
@@ -230,7 +241,15 @@ export function startFirebaseSync(): () => void {
           const batch = writeBatch(db!)
           batch.set(
             getMainRef(),
-            sanitizeForFirestore({ memories: [], thoughts: [], events: [] })
+            sanitizeForFirestore({
+              memories: [],
+              thoughts: [],
+              events: [],
+              penaltyApplications: [],
+              penaltyScores: { marie: 0, nico: 0 },
+              penaltyMeta: { lastProcessedAnniversary: null },
+              penaltyMonthHistory: [],
+            })
           )
           void batch.commit()
         }
@@ -244,6 +263,12 @@ export function startFirebaseSync(): () => void {
         memories: (data.memories as AppData['memories']) ?? [],
         thoughts: (data.thoughts as AppData['thoughts']) ?? [],
         events: (data.events as AppData['events']) ?? [],
+        penaltyApplications: (data.penaltyApplications as AppData['penaltyApplications']) ?? [],
+        penaltyScores: (data.penaltyScores as AppData['penaltyScores']) ?? { marie: 0, nico: 0 },
+        penaltyMeta: (data.penaltyMeta as AppData['penaltyMeta']) ?? {
+          lastProcessedAnniversary: null,
+        },
+        penaltyMonthHistory: (data.penaltyMonthHistory as AppData['penaltyMonthHistory']) ?? [],
       }
 
       const legacyBoards = (data.moodboards as AppData['moodboards']) ?? []

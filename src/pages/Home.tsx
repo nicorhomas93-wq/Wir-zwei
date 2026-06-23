@@ -19,6 +19,11 @@ const documentSections = [
     title: 'Beziehungsgesetzbuch',
     description: 'Vertrauen, Liebe, Exklusivität',
   },
+  {
+    to: '/strafkatalog',
+    title: 'Strafkatalog',
+    description: 'Punkte & Wiedergutmachung',
+  },
 ]
 
 const sections: Array<{

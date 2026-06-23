@@ -46,9 +46,42 @@ export interface PlanEvent {
   createdAt: string
 }
 
+export interface PenaltyApplication {
+  id: string
+  penaltyId: string
+  title: string
+  points: number
+  targetUserId: string
+  targetUserName: string
+  appliedByUserId: string
+  appliedByUserName: string
+  appliedAt: string
+}
+
+export interface PenaltyScores {
+  marie: number
+  nico: number
+}
+
+export interface PenaltyMeta {
+  lastProcessedAnniversary: string | null
+}
+
+export interface PenaltyMonthReset {
+  id: string
+  anniversaryDate: string
+  scoresBefore: PenaltyScores
+  scoresAfter: PenaltyScores
+  processedAt: string
+}
+
 export interface AppData {
   memories: Memory[]
   thoughts: Thought[]
   moodboards: Moodboard[]
   events: PlanEvent[]
+  penaltyApplications: PenaltyApplication[]
+  penaltyScores: PenaltyScores
+  penaltyMeta: PenaltyMeta
+  penaltyMonthHistory: PenaltyMonthReset[]
 }
