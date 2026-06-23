@@ -61,8 +61,8 @@ export default function InstallHint() {
     <div className="install-hint animate-fade-in">
       <p className="install-hint-text">
         {iosHint
-          ? 'Tippe auf Teilen → „Zum Home-Bildschirm“ — dann ist Wir Zwei wie eine App auf deinem Handy.'
-          : 'Wir Zwei auf deinem Handy installieren — wie eine kleine App, nur für uns.'}
+          ? 'Tippe auf Teilen → „Zum Home-Bildschirm“ — dann bleiben Hinweise & Planung näher dran.'
+          : 'Wir Zwei installieren — für Erinnerungen und ein ruhigeres App-Gefühl zu zweit.'}
       </p>
       <div className="install-hint-actions">
         {!iosHint && (

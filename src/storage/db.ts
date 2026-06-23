@@ -1,6 +1,18 @@
-import type { AppData, Memory, Moodboard, MoodboardItem, PenaltyApplication, PlanEvent, Thought } from '../types'
+import type {
+  AppData,
+  Memory,
+  Moodboard,
+  MoodboardItem,
+  NotificationPreferences,
+  PenaltyApplication,
+  PlanEvent,
+  PushDevice,
+  Thought,
+} from '../types'
 import { POINT_DELTA } from '../content/strafkatalog'
+import { sortPlanEvents } from '../utils/planEvents'
 import { recordUserActivity } from './meta'
+import { normalizeNotifications } from './notificationsState'
 import { getStore, syncAppData } from './sync'
 
 export function loadData(): AppData {
@@ -126,7 +138,142 @@ export function addEvent(event: Omit<PlanEvent, 'id' | 'createdAt' | 'done'>): P
 }
 
 export function getEvents(): PlanEvent[] {
-  return [...getStore().events].sort((a, b) => a.date.localeCompare(b.date))
+  return sortPlanEvents(getStore().events)
+}
+
+export function updateEvent(
+  id: string,
+  patch: Partial<
+    Pick<
+      PlanEvent,
+      'title' | 'date' | 'time' | 'note' | 'reminderEnabled' | 'reminderType' | 'reminderTime'
+    >
+  >
+): PlanEvent | undefined {
+  const current = getStore().events.find((event) => event.id === id)
+  if (!current) return undefined
+
+  const updated: PlanEvent = { ...current, ...patch }
+
+  if ('date' in patch && !patch.date) {
+    updated.date = undefined
+  }
+  if ('time' in patch && !patch.time) {
+    updated.time = undefined
+  }
+  if ('reminderTime' in patch && !patch.reminderTime) {
+    updated.reminderTime = undefined
+  }
+
+  syncAppData((data) => ({
+    ...data,
+    events: data.events.map((event) => (event.id === id ? updated : event)),
+  }))
+
+  return updated
+}
+
+export function markEventReminderShown(id: string): void {
+  const now = new Date().toISOString()
+  syncAppData((data) => ({
+    ...data,
+    events: data.events.map((event) =>
+      event.id === id ? { ...event, reminderShownAt: now } : event
+    ),
+  }))
+}
+
+export function updateNotificationPreferences(
+  patch: Partial<NotificationPreferences>
+): NotificationPreferences {
+  const current = getStore().notifications
+  const updated = normalizeNotifications({ ...current, ...patch })
+
+  syncAppData((data) => ({
+    ...data,
+    notifications: updated,
+  }))
+
+  return updated
+}
+
+export function recordAppOpen(): NotificationPreferences {
+  const now = new Date().toISOString()
+  return updateNotificationPreferences({ lastOpenedAt: now })
+}
+
+export function dismissInAppReminder(reminderId: string): void {
+  const current = getStore().notifications
+  const dismissed = [...new Set([...current.dismissedInAppReminderIds, reminderId])].slice(-40)
+
+  syncAppData((data) => ({
+    ...data,
+    notifications: { ...data.notifications, dismissedInAppReminderIds: dismissed },
+  }))
+
+  if (reminderId.startsWith('daily-')) {
+    updateNotificationPreferences({ lastDailyReminderShownAt: new Date().toISOString() })
+  } else if (reminderId.startsWith('event:')) {
+    const eventId = reminderId.split(':')[1]
+    if (eventId) markEventReminderShown(eventId)
+  }
+}
+
+export function markDailyReminderShown(): void {
+  updateNotificationPreferences({ lastDailyReminderShownAt: new Date().toISOString() })
+}
+
+export function registerPushDevice(params: {
+  userId: string
+  token: string
+  platform: Exclude<PushDevice['platform'], null>
+}): PushDevice {
+  const now = new Date().toISOString()
+  const existing = getStore().pushDevices.find((device) => device.token === params.token)
+  const device: PushDevice = {
+    id: existing?.id ?? crypto.randomUUID(),
+    userId: params.userId,
+    token: params.token,
+    platform: params.platform,
+    updatedAt: now,
+  }
+
+  syncAppData((data) => ({
+    ...data,
+    pushDevices: [device, ...data.pushDevices.filter((entry) => entry.token !== params.token)],
+  }))
+
+  return device
+}
+
+export function unregisterPushDevice(token: string): void {
+  syncAppData((data) => ({
+    ...data,
+    pushDevices: data.pushDevices.filter((device) => device.token !== token),
+  }))
+}
+
+export function addGeneratorPlan(params: {
+  userId: string
+  userName: string
+  title: string
+  category: string
+  date: string
+  reminderEnabled?: boolean
+  reminderType?: PlanEvent['reminderType']
+}): PlanEvent {
+  const prefs = getStore().notifications
+
+  return addEvent({
+    userId: params.userId,
+    userName: params.userName,
+    title: params.title,
+    date: params.date,
+    category: params.category,
+    source: 'generator',
+    reminderEnabled: params.reminderEnabled ?? prefs.eventReminderEnabled,
+    reminderType: params.reminderType ?? 'day_of',
+  })
 }
 
 export function toggleEventDone(id: string): PlanEvent | undefined {

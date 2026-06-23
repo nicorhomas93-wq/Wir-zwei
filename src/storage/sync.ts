@@ -10,6 +10,7 @@ import { db, isFirebaseConfigured } from '../firebase/config'
 import type { AppData } from '../types'
 import { hasAnyData, loadCache, saveCache } from './cache'
 import { mergeAppData, normalizeAppData, sanitizeForFirestore } from './merge'
+import { normalizeNotifications } from './notificationsState'
 import { BOARDS_DOC_PATH, MAIN_DOC_PATH } from './paths'
 
 type Listener = () => void
@@ -24,11 +25,21 @@ let flushing = false
 
 let remoteMain: Pick<
   AppData,
-  'memories' | 'thoughts' | 'events' | 'penaltyApplications' | 'penaltyScores' | 'penaltyMeta' | 'penaltyMonthHistory'
+  | 'memories'
+  | 'thoughts'
+  | 'events'
+  | 'notifications'
+  | 'pushDevices'
+  | 'penaltyApplications'
+  | 'penaltyScores'
+  | 'penaltyMeta'
+  | 'penaltyMonthHistory'
 > = {
   memories: [],
   thoughts: [],
   events: [],
+  notifications: normalizeNotifications(),
+  pushDevices: [],
   penaltyApplications: [],
   penaltyScores: { marie: 0, nico: 0 },
   penaltyMeta: { lastProcessedAnniversary: null },
@@ -114,6 +125,8 @@ function splitForCloud(data: AppData) {
       memories: data.memories,
       thoughts: data.thoughts,
       events: data.events,
+      notifications: data.notifications,
+      pushDevices: data.pushDevices,
       penaltyApplications: data.penaltyApplications,
       penaltyScores: data.penaltyScores,
       penaltyMeta: data.penaltyMeta,
@@ -245,6 +258,8 @@ export function startFirebaseSync(): () => void {
               memories: [],
               thoughts: [],
               events: [],
+              notifications: normalizeNotifications(),
+              pushDevices: [],
               penaltyApplications: [],
               penaltyScores: { marie: 0, nico: 0 },
               penaltyMeta: { lastProcessedAnniversary: null },
@@ -263,6 +278,10 @@ export function startFirebaseSync(): () => void {
         memories: (data.memories as AppData['memories']) ?? [],
         thoughts: (data.thoughts as AppData['thoughts']) ?? [],
         events: (data.events as AppData['events']) ?? [],
+        notifications: normalizeNotifications(
+          data.notifications as Partial<AppData['notifications']> | undefined
+        ),
+        pushDevices: (data.pushDevices as AppData['pushDevices']) ?? [],
         penaltyApplications: (data.penaltyApplications as AppData['penaltyApplications']) ?? [],
         penaltyScores: (data.penaltyScores as AppData['penaltyScores']) ?? { marie: 0, nico: 0 },
         penaltyMeta: (data.penaltyMeta as AppData['penaltyMeta']) ?? {

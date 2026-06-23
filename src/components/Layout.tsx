@@ -1,8 +1,12 @@
+import { useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { bothUsersActiveToday, hasRecentGlobalActivity } from '../storage/meta'
+import { getStore } from '../storage/sync'
+import { recordAppOpen } from '../storage/db'
+import InAppReminders, { wasFirstOpenToday } from './InAppReminders'
 import InstallHint from './InstallHint'
-
+import ForegroundPushToast, { PushBootstrap } from './PushBootstrap'
 const navItems = [
   { to: '/', label: 'Home', end: true },
   { to: '/erinnerungen', label: 'Erinnerungen' },
@@ -14,6 +18,11 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const isFirstOpenRef = useRef(wasFirstOpenToday(getStore().notifications.lastOpenedAt))
+
+  useEffect(() => {
+    recordAppOpen()
+  }, [])
   const isHome = location.pathname === '/'
   const connected = bothUsersActiveToday()
   const calm = !hasRecentGlobalActivity(3)
@@ -56,6 +65,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         key={location.pathname}
         className="app-main relative z-10 flex-1 max-w-lg mx-auto w-full px-3 page-enter"
       >
+        <PushBootstrap />
+        <ForegroundPushToast />
+        <InAppReminders isFirstOpenToday={isFirstOpenRef.current} />
         {children}
       </main>
 

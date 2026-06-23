@@ -6,6 +6,7 @@ import DeleteButton from '../components/DeleteButton'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
 import { SYMBOLS } from '../constants/symbols'
+import ReminderCenter from '../components/ReminderCenter'
 import { useSectionVisit } from '../hooks/useSectionVisit'
 import { useAppData } from '../storage/DataContext'
 import { addMemory, deleteMemory, readImageAsDataUrl } from '../storage/db'
@@ -63,6 +64,8 @@ export default function Memories() {
         title="Erinnerungen"
         subtitle="Für Momente, die bleiben"
       />
+
+      <ReminderCenter compact />
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card space-y-4 animate-fade-in">

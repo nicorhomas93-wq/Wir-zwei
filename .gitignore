@@ -3,6 +3,8 @@ dist
 .DS_Store
 *.local
 .env
+functions/node_modules
+functions/lib
 android/.gradle
 android/app/build
 android/build

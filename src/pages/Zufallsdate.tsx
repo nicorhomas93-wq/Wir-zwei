@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import PlanEventEditSheet from '../components/PlanEventEditSheet'
+import { useAppData } from '../storage/DataContext'
 import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_VIBES,
@@ -10,6 +13,8 @@ import {
   pickRandomActivity,
   pickShufflePreviews,
 } from '../content/zufallsdate'
+import { addGeneratorPlan } from '../storage/db'
+import { toDateKey } from '../utils/calendar'
 
 const TICK_MS_MIN = 80
 const TICK_MS_MAX = 120
@@ -28,6 +33,8 @@ function randomTickMs(): number {
 }
 
 export default function Zufallsdate() {
+  const { user } = useAuth()
+  const { events } = useAppData()
   const [filter, setFilter] = useState<ActivityFilter>('all')
   const [vibes, setVibes] = useState<ActivityVibe[]>([])
   const [result, setResult] = useState<RandomActivityResult | null>(null)
@@ -37,6 +44,10 @@ export default function Zufallsdate() {
   const [shuffleText, setShuffleText] = useState('')
   const [shuffleTick, setShuffleTick] = useState(0)
   const [cooldownLeft, setCooldownLeft] = useState(0)
+  const [plannedEventId, setPlannedEventId] = useState<string | null>(null)
+  const [planFlash, setPlanFlash] = useState(false)
+  const [planMessage, setPlanMessage] = useState('')
+  const [editOpen, setEditOpen] = useState(false)
   const cooldownUntil = useRef(0)
   const shuffleTimers = useRef<number[]>([])
   const tickMsRef = useRef(100)
@@ -44,6 +55,13 @@ export default function Zufallsdate() {
   const clearShuffleTimers = useCallback(() => {
     shuffleTimers.current.forEach((id) => window.clearTimeout(id))
     shuffleTimers.current = []
+  }, [])
+
+  const resetPlanState = useCallback(() => {
+    setPlannedEventId(null)
+    setPlanFlash(false)
+    setPlanMessage('')
+    setEditOpen(false)
   }, [])
 
   const toggleVibe = (vibe: ActivityVibe) => {
@@ -74,6 +92,7 @@ export default function Zufallsdate() {
     if (rolling || cooldownLeft > 0) return
 
     clearShuffleTimers()
+    resetPlanState()
     setRolling(true)
     setReveal(false)
     setFinalReveal(false)
@@ -105,10 +124,36 @@ export default function Zufallsdate() {
       })
     }, finishAt)
     shuffleTimers.current.push(finishId)
-  }, [clearShuffleTimers, cooldownLeft, filter, vibes, result, rolling, startCooldown])
+  }, [clearShuffleTimers, cooldownLeft, filter, resetPlanState, result, rolling, startCooldown, vibes])
+
+  const handlePlan = () => {
+    if (!user || !result) return
+
+    const today = toDateKey(new Date())
+    const entry = addGeneratorPlan({
+      userId: user.id,
+      userName: user.name,
+      title: result.text,
+      category: result.category,
+      date: today,
+    })
+
+    setPlannedEventId(entry.id)
+    setPlanFlash(true)
+    setPlanMessage('In Planung gespeichert')
+    window.setTimeout(() => setPlanFlash(false), 2600)
+  }
+
+  const plannedEvent = plannedEventId ? events.find((event) => event.id === plannedEventId) : null
+
+  const handleOpenEdit = () => {
+    if (!plannedEventId) return
+    setEditOpen(true)
+  }
 
   const categoryMeta = result ? ACTIVITY_CATEGORIES[result.category] : null
   const onCooldown = cooldownLeft > 0 && !rolling
+  const showResultActions = Boolean(result && reveal && finalReveal && !rolling)
 
   return (
     <div className="document-page zufallsdate-page space-y-5 pb-16">
@@ -155,7 +200,7 @@ export default function Zufallsdate() {
         </div>
 
         <div
-          className={`zufallsdate-result ${rolling ? 'zufallsdate-result--rolling' : ''} ${reveal && result && finalReveal ? `zufallsdate-result--reveal zufallsdate-result--reveal-${result.category}` : ''}`}
+          className={`zufallsdate-result ${rolling ? 'zufallsdate-result--rolling' : ''} ${planFlash ? 'zufallsdate-result--planned' : ''} ${reveal && result && finalReveal ? `zufallsdate-result--reveal zufallsdate-result--reveal-${result.category}` : ''}`}
           aria-live="polite"
         >
           {rolling ? (
@@ -200,16 +245,72 @@ export default function Zufallsdate() {
           )}
         </div>
 
-        <div className="zufallsdate-actions">
-          <button
-            type="button"
-            className={`zufallsdate-roll-btn tap-active ${rolling ? 'zufallsdate-roll-btn--busy' : ''}`}
-            onClick={roll}
-            disabled={rolling || onCooldown}
-          >
-            {result ? 'Nochmal würfeln' : 'Zufällige Idee'}
-          </button>
+        {planFlash && plannedEventId && (
+          <p className="zufallsdate-plan-feedback animate-fade-in">
+            {planMessage}
+            {plannedEvent?.reminderEnabled !== false && ' · Erinnerung gesetzt'}
+          </p>
+        )}
+
+        {editOpen && plannedEvent && (
+          <PlanEventEditSheet
+            event={plannedEvent}
+            onClose={() => setEditOpen(false)}
+            onSaved={() => {
+              setPlanMessage('Aktualisiert')
+              setPlanFlash(true)
+              window.setTimeout(() => setPlanFlash(false), 1800)
+            }}
+          />
+        )}
+
+        <div className={`zufallsdate-actions ${showResultActions ? 'zufallsdate-actions--dual' : ''}`}>
+          {showResultActions ? (
+            <>
+              <button
+                type="button"
+                className={`zufallsdate-roll-btn zufallsdate-roll-btn--secondary tap-active ${rolling ? 'zufallsdate-roll-btn--busy' : ''}`}
+                onClick={roll}
+                disabled={rolling || onCooldown}
+              >
+                Nochmal würfeln
+              </button>
+              {!plannedEventId ? (
+                <button
+                  type="button"
+                  className="zufallsdate-roll-btn zufallsdate-roll-btn--plan tap-active"
+                  onClick={handlePlan}
+                  disabled={!user}
+                >
+                  Einplanen
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="zufallsdate-roll-btn zufallsdate-roll-btn--planned tap-active"
+                  onClick={handleOpenEdit}
+                >
+                  Bearbeiten
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              type="button"
+              className={`zufallsdate-roll-btn tap-active ${rolling ? 'zufallsdate-roll-btn--busy' : ''}`}
+              onClick={roll}
+              disabled={rolling || onCooldown}
+            >
+              Zufällige Idee
+            </button>
+          )}
         </div>
+
+        {plannedEventId && showResultActions && (
+          <Link to="/planung" className="zufallsdate-plan-link tap-active">
+            Jetzt in Planung ansehen →
+          </Link>
+        )}
 
         {onCooldown && (
           <p className="zufallsdate-cooldown" aria-hidden>

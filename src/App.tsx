@@ -9,6 +9,7 @@ import Home from './pages/Home'
 import Memories from './pages/Memories'
 import MoodboardDetail from './pages/MoodboardDetail'
 import Moodboards from './pages/Moodboards'
+import NotificationSettings from './pages/NotificationSettings'
 import Planning from './pages/Planning'
 import Strafkatalog from './pages/Strafkatalog'
 import Thoughts from './pages/Thoughts'
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/moodboards" element={<Moodboards />} />
             <Route path="/moodboards/:id" element={<MoodboardDetail />} />
             <Route path="/planung" element={<Planning />} />
+            <Route path="/einstellungen" element={<NotificationSettings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

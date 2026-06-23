@@ -934,6 +934,35 @@
     color: rgba(255, 255, 255, 0.55);
   }
 
+  .plan-count-badge {
+    @apply text-[0.625rem] rounded-full px-2 py-0.5 tabular-nums;
+    color: rgba(255, 255, 255, 0.42);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .plan-source-badge {
+    @apply inline-block text-[0.5625rem] uppercase tracking-[0.12em] rounded-full px-2 py-0.5;
+    color: rgba(210, 225, 255, 0.88);
+    background: rgba(120, 160, 255, 0.1);
+    border: 1px solid rgba(120, 160, 255, 0.18);
+  }
+
+  .plan-open-badge {
+    @apply inline-block text-[0.5625rem] uppercase tracking-[0.12em] rounded-full px-2 py-0.5;
+    color: rgba(255, 220, 200, 0.88);
+    background: rgba(255, 120, 40, 0.1);
+    border: 1px solid rgba(255, 140, 80, 0.18);
+  }
+
+  .plan-event-card--compact {
+    @apply p-3.5;
+  }
+
+  .plan-schedule--open {
+    color: rgba(255, 180, 130, 0.72);
+  }
+
   .event-today-badge {
     @apply text-[0.625rem] font-medium rounded-full px-2 py-0.5;
     color: rgba(200, 236, 212, 0.95);
@@ -2127,6 +2156,64 @@
     @apply mt-5;
   }
 
+  .zufallsdate-actions--dual {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .zufallsdate-plan-feedback {
+    @apply text-center text-xs mt-4 px-2;
+    color: rgba(200, 236, 212, 0.82);
+  }
+
+  .zufallsdate-plan-link {
+    @apply block text-center text-xs mt-3;
+    color: rgba(46, 204, 113, 0.62);
+  }
+
+  .zufallsdate-edit {
+    @apply mt-4 p-3 rounded-xl;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .zufallsdate-edit-row {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .zufallsdate-edit-field {
+    @apply block space-y-1;
+  }
+
+  .zufallsdate-edit-field span {
+    @apply text-[0.625rem] uppercase tracking-[0.1em];
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .zufallsdate-edit-input {
+    @apply py-2 text-sm;
+  }
+
+  .zufallsdate-edit-actions {
+    @apply flex gap-2 mt-3;
+  }
+
+  .zufallsdate-edit-cancel,
+  .zufallsdate-edit-save {
+    @apply flex-1 rounded-xl py-2.5 text-xs font-medium;
+  }
+
+  .zufallsdate-edit-cancel {
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .zufallsdate-edit-save {
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(46, 204, 113, 0.16);
+    border: 1px solid rgba(46, 204, 113, 0.28);
+  }
+
   .zufallsdate-roll-btn {
     @apply w-full rounded-2xl py-4 px-4 text-sm font-medium;
     color: rgba(255, 255, 255, 0.94);
@@ -2150,9 +2237,221 @@
       0 0 12px rgba(46, 204, 113, 0.08);
   }
 
+  .zufallsdate-roll-btn--secondary {
+    color: rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
+
+  .zufallsdate-roll-btn--plan {
+    color: rgba(255, 255, 255, 0.96);
+    background: linear-gradient(180deg, rgba(34, 58, 42, 0.98) 0%, rgba(22, 44, 30, 1) 100%);
+    border-color: rgba(46, 204, 113, 0.35);
+  }
+
+  .zufallsdate-roll-btn--planned {
+    color: rgba(200, 236, 212, 0.95);
+    background: rgba(46, 204, 113, 0.14);
+    border-color: rgba(46, 204, 113, 0.3);
+    box-shadow: 0 0 16px rgba(46, 204, 113, 0.1);
+  }
+
   .zufallsdate-roll-btn:disabled {
     opacity: 0.45;
     pointer-events: none;
+  }
+
+  .plan-reminder-badge {
+    @apply inline-block text-[0.5625rem] uppercase tracking-[0.12em] rounded-full px-2 py-0.5;
+    color: rgba(200, 236, 212, 0.78);
+    background: rgba(46, 204, 113, 0.08);
+    border: 1px solid rgba(46, 204, 113, 0.14);
+  }
+
+  .plan-edit-btn {
+    @apply shrink-0 w-8 h-8 rounded-full text-sm flex items-center justify-center;
+    color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .plan-group-label {
+    @apply text-[0.625rem] uppercase tracking-[0.14em] mb-2;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .plan-edit-sheet-kicker {
+    @apply text-[0.5625rem] uppercase tracking-[0.14em];
+    color: rgba(46, 204, 113, 0.45);
+  }
+
+  .plan-edit-sheet-title {
+    @apply text-base font-medium mt-1;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .plan-edit-grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .plan-edit-field {
+    @apply block space-y-1;
+  }
+
+  .plan-edit-field span {
+    @apply text-[0.625rem] uppercase tracking-[0.1em];
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .plan-edit-reminder-options {
+    @apply flex flex-wrap gap-1.5 mt-2;
+  }
+
+  .plan-reminder-chip {
+    @apply text-[0.6875rem] rounded-full px-2.5 py-1;
+    color: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .plan-reminder-chip--active {
+    color: rgba(200, 236, 212, 0.9);
+    border-color: rgba(46, 204, 113, 0.28);
+    background: rgba(46, 204, 113, 0.1);
+  }
+
+  .in-app-reminders {
+    @apply space-y-2 mb-4;
+  }
+
+  .in-app-reminder {
+    @apply rounded-2xl px-4 py-3 flex items-start justify-between gap-3;
+    background: rgba(12, 10, 14, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .in-app-reminder--daily {
+    border-color: rgba(120, 160, 255, 0.16);
+  }
+
+  .in-app-reminder--event {
+    border-color: rgba(46, 204, 113, 0.16);
+  }
+
+  .in-app-reminder-text {
+    @apply text-sm leading-snug flex-1;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .in-app-reminder-actions {
+    @apply flex flex-col gap-1.5 shrink-0;
+  }
+
+  .in-app-reminder-link,
+  .in-app-reminder-dismiss {
+    @apply text-xs;
+    color: rgba(46, 204, 113, 0.72);
+  }
+
+  .reminder-center-kicker {
+    @apply text-[0.5625rem] uppercase tracking-[0.14em];
+    color: rgba(46, 204, 113, 0.45);
+  }
+
+  .reminder-center-header {
+    @apply flex items-start justify-between gap-3 mb-3;
+  }
+
+  .reminder-center-settings {
+    @apply text-xs shrink-0;
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .reminder-center-meta {
+    @apply text-xs mb-3;
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .reminder-center-list {
+    @apply space-y-2;
+  }
+
+  .reminder-center-item {
+    @apply flex flex-col gap-0.5 py-2;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .reminder-center-item:last-child {
+    border-bottom: none;
+  }
+
+  .reminder-center-item-title {
+    @apply text-sm;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .reminder-center-item-when {
+    @apply text-xs;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .reminder-center-badge {
+    @apply mt-1 self-start;
+  }
+
+  .reminder-center-empty,
+  .reminder-center-open {
+    @apply text-sm;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .reminder-center-link {
+    @apply inline-block text-xs mt-3;
+    color: rgba(46, 204, 113, 0.62);
+  }
+
+  .reminder-center--compact {
+    @apply p-4;
+  }
+
+  .zufallsdate-result--planned {
+    box-shadow: 0 0 28px rgba(46, 204, 113, 0.14);
+  }
+
+  .notification-push-ready {
+    opacity: 0.92;
+  }
+
+  .foreground-push-toast {
+    @apply fixed left-3 right-3 z-40 p-4 rounded-2xl;
+    top: calc(env(safe-area-inset-top) + 4.5rem);
+    max-width: 32rem;
+    margin-inline: auto;
+    background: rgba(22, 16, 20, 0.94);
+    border: 1px solid rgba(255, 120, 90, 0.22);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .foreground-push-toast-title {
+    @apply text-sm font-medium;
+    color: rgba(255, 235, 228, 0.95);
+  }
+
+  .foreground-push-toast-body {
+    @apply text-sm mt-1;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .foreground-push-toast-actions {
+    @apply flex gap-3 mt-3;
+  }
+
+  .foreground-push-toast-link,
+  .foreground-push-toast-dismiss {
+    @apply text-xs;
+    color: rgba(255, 150, 110, 0.95);
   }
 
   .zufallsdate-cooldown {

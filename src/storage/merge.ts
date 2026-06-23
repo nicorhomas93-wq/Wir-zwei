@@ -1,4 +1,6 @@
-import type { AppData, Moodboard, MoodboardItem, PenaltyApplication } from '../types'
+import type { AppData, Moodboard, MoodboardItem, PenaltyApplication, PushDevice } from '../types'
+import { sortPlanEvents } from '../utils/planEvents'
+import { mergeNotifications, normalizeNotifications } from './notificationsState'
 import {
   deriveScoresFromApplications,
   EMPTY_PENALTY_SCORES,
@@ -76,6 +78,15 @@ function mergeMoodboards(
   )
 }
 
+function mergePushDevices(remote: PushDevice[], local: PushDevice[]): PushDevice[] {
+  const map = new Map<string, PushDevice>()
+  for (const device of remote) map.set(device.token, device)
+  for (const device of local) map.set(device.token, device)
+  return [...map.values()].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
+}
+
 function mergePenalties(
   remote: AppData['penaltyApplications'],
   local: AppData['penaltyApplications'],
@@ -135,6 +146,8 @@ export function normalizeAppData(raw: Partial<AppData>): AppData {
     thoughts: raw.thoughts ?? [],
     events: raw.events ?? [],
     moodboards: (raw.moodboards ?? []).map(normalizeMoodboard),
+    notifications: normalizeNotifications(raw.notifications),
+    pushDevices: raw.pushDevices ?? [],
     penaltyApplications,
     ...buildPenaltyFields({ ...raw, penaltyApplications }),
   }
@@ -179,9 +192,9 @@ export function mergeAppData(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     ),
     moodboards: mergeMoodboards(remote.moodboards, local.moodboards, preferRemote),
-    events: mergeList(remote.events, local.events).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    ),
+    events: sortPlanEvents(mergeList(remote.events, local.events)),
+    notifications: mergeNotifications(remote.notifications, local.notifications),
+    pushDevices: mergePushDevices(remote.pushDevices, local.pushDevices),
     penaltyApplications,
     ...mergedPenalty,
   }
@@ -211,6 +224,8 @@ export const SYNCED_COLLECTIONS = [
   'thoughts',
   'moodboards',
   'events',
+  'notifications',
+  'pushDevices',
   'penaltyApplications',
   'penaltyScores',
   'penaltyMeta',
