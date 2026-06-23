@@ -88,6 +88,23 @@ export function formatTimelineLine(entry: TimelineEntry): string {
   return `${formatTimelineDelta(entry.delta)} ${entry.label} · ${entry.targetUserName} · ${when}`
 }
 
+export function formatTimelineTime(iso: string): string {
+  const date = new Date(iso)
+  const now = new Date()
+  const isToday = date.toDateString() === now.toDateString()
+
+  if (isToday) {
+    return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  return date.toLocaleDateString('de-DE', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function formatMonthLabel(dateKey: string): string {
   return parseDateKey(dateKey).toLocaleDateString('de-DE', {
     day: 'numeric',

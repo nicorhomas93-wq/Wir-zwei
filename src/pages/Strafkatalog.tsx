@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AnimatedScore from '../components/AnimatedScore'
+import PenaltyToast, { type PenaltyToastItem } from '../components/PenaltyToast'
 import { useAuth } from '../auth/AuthContext'
 import { RELATIONSHIP_START_LABEL } from '../constants/relationship'
 import type { CatalogEntry } from '../content/strafkatalog'
@@ -13,7 +15,12 @@ import {
 import { useAppData } from '../storage/DataContext'
 import { applyPenalty, applyRedemption, deductManualPenaltyPoint, grantManualPenaltyPoint } from '../storage/db'
 import { formatDate } from '../utils/formatDate'
-import { buildPenaltyTimeline, formatMonthLabel, formatTimelineDelta } from '../utils/penaltyTimeline'
+import {
+  buildPenaltyTimeline,
+  formatMonthLabel,
+  formatTimelineDelta,
+  formatTimelineTime,
+} from '../utils/penaltyTimeline'
 import {
   formatAnniversaryLabel,
   getCurrentRelationshipMonthIndex,
@@ -25,15 +32,18 @@ const USERS = [
   { id: 'nico', name: 'Nico' },
 ] as const
 
-const MINI_TIMELINE_LIMIT = 8
+const MINI_TIMELINE_LIMIT = 10
+const FEEDBACK_MS = 750
 
 type CatalogTab = 'strafen' | 'wiedergutmachungen'
+type PulseVariant = 'plus' | 'minus'
 
 function CatalogCard({
   entry,
   delta,
   lastApplied,
   appliedId,
+  impactCardId,
   onApply,
   disabledFor,
 }: {
@@ -41,11 +51,15 @@ function CatalogCard({
   delta: number
   lastApplied?: string
   appliedId: string | null
+  impactCardId: string | null
   onApply: (entry: CatalogEntry, targetUserId: string) => void
   disabledFor?: (targetUserId: string) => boolean
 }) {
+  const impactVariant: PulseVariant = delta > 0 ? 'plus' : 'minus'
+  const cardImpact = impactCardId === entry.id ? `penalty-card--impact-${impactVariant}` : ''
+
   return (
-    <article className={`penalty-card card penalty-card--${entry.type}`}>
+    <article className={`penalty-card card penalty-card--${entry.type} ${cardImpact}`}>
       <div className="penalty-card-top">
         <div className="penalty-card-main">
           <span className="penalty-category-pill">{entry.category}</span>
@@ -89,7 +103,16 @@ export default function Strafkatalog() {
   const [tab, setTab] = useState<CatalogTab>('strafen')
   const [category, setCategory] = useState<string>('Alle')
   const [appliedId, setAppliedId] = useState<string | null>(null)
-  const [flashUserId, setFlashUserId] = useState<string | null>(null)
+  const [impactCardId, setImpactCardId] = useState<string | null>(null)
+  const [scorePulse, setScorePulse] = useState<Record<string, PulseVariant | null>>({
+    marie: null,
+    nico: null,
+  })
+  const [scoreFlash, setScoreFlash] = useState<Record<string, PulseVariant | null>>({
+    marie: null,
+    nico: null,
+  })
+  const [toasts, setToasts] = useState<PenaltyToastItem[]>([])
 
   const nextAnniversary = useMemo(() => getNextRelationshipAnniversary(), [])
   const relationshipMonth = useMemo(() => getCurrentRelationshipMonthIndex(), [])
@@ -118,14 +141,48 @@ export default function Strafkatalog() {
     return map
   }, [penaltyApplications])
 
-  const flashScore = (targetUserId: string, entryKey: string) => {
-    setAppliedId(entryKey)
-    setFlashUserId(targetUserId)
-    window.setTimeout(() => {
-      setAppliedId(null)
-      setFlashUserId(null)
-    }, 700)
-  }
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
+  const emitFeedback = useCallback(
+    (params: {
+      delta: number
+      title: string
+      targetUserId: string
+      targetName: string
+      cardKey?: string
+      entryId?: string
+    }) => {
+      const variant: PulseVariant = params.delta > 0 ? 'plus' : 'minus'
+
+      setToasts((prev) =>
+        [
+          {
+            id: crypto.randomUUID(),
+            delta: params.delta,
+            title: params.title,
+            targetName: params.targetName,
+          },
+          ...prev,
+        ].slice(0, 3)
+      )
+
+      setScorePulse((prev) => ({ ...prev, [params.targetUserId]: variant }))
+      setScoreFlash((prev) => ({ ...prev, [params.targetUserId]: variant }))
+
+      if (params.cardKey) setAppliedId(params.cardKey)
+      if (params.entryId) setImpactCardId(params.entryId)
+
+      window.setTimeout(() => {
+        setAppliedId(null)
+        setImpactCardId(null)
+        setScorePulse((prev) => ({ ...prev, [params.targetUserId]: null }))
+        setScoreFlash((prev) => ({ ...prev, [params.targetUserId]: null }))
+      }, FEEDBACK_MS)
+    },
+    []
+  )
 
   const handleApplyStrafe = (entry: CatalogEntry, targetUserId: string) => {
     if (!user) return
@@ -142,7 +199,14 @@ export default function Strafkatalog() {
       appliedByUserName: user.name,
     })
 
-    flashScore(targetUserId, `${entry.id}-${targetUserId}`)
+    emitFeedback({
+      delta: POINT_DELTA,
+      title: entry.title,
+      targetUserId: target.id,
+      targetName: target.name,
+      cardKey: `${entry.id}-${targetUserId}`,
+      entryId: entry.id,
+    })
   }
 
   const handleApplyWiedergutmachung = (entry: CatalogEntry, targetUserId: string) => {
@@ -161,7 +225,15 @@ export default function Strafkatalog() {
     })
 
     if (!result) return
-    flashScore(targetUserId, `${entry.id}-${targetUserId}`)
+
+    emitFeedback({
+      delta: -POINT_DELTA,
+      title: entry.title,
+      targetUserId: target.id,
+      targetName: target.name,
+      cardKey: `${entry.id}-${targetUserId}`,
+      entryId: entry.id,
+    })
   }
 
   const handleManualGrant = (targetUserId: string, targetUserName: string) => {
@@ -174,7 +246,12 @@ export default function Strafkatalog() {
       appliedByUserName: user.name,
     })
 
-    flashScore(targetUserId, `manual-grant-${targetUserId}`)
+    emitFeedback({
+      delta: POINT_DELTA,
+      title: 'Punkt vergeben',
+      targetUserId,
+      targetName: targetUserName,
+    })
   }
 
   const handleManualDeduct = (targetUserId: string, targetUserName: string) => {
@@ -189,13 +266,21 @@ export default function Strafkatalog() {
     })
 
     if (!result) return
-    flashScore(targetUserId, `manual-deduct-${targetUserId}`)
+
+    emitFeedback({
+      delta: -POINT_DELTA,
+      title: 'Ausgeglichen',
+      targetUserId,
+      targetName: targetUserName,
+    })
   }
 
   const nextMonthShort = formatAnniversaryLabel(nextAnniversary).replace(/\s\d{4}$/, '')
 
   return (
     <div className="document-page penalty-page space-y-5 pb-16">
+      <PenaltyToast items={toasts} onDismiss={dismissToast} />
+
       <div className="penalty-page-header">
         <Link to="/" className="text-sm nav-back tap-active">
           ← Home
@@ -206,33 +291,43 @@ export default function Strafkatalog() {
 
       <section className="penalty-scoreboard penalty-scoreboard--compact document-block animate-fade-in">
         <div className="penalty-score-hero">
-          {USERS.map((entry) => (
-            <div
-              key={entry.id}
-              className={`penalty-score-card penalty-score-card--hero ${flashUserId === entry.id ? 'penalty-score-card--flash' : ''}`}
-            >
-              <p className="penalty-score-name">{entry.name}</p>
-              <p className="penalty-score-value">{penaltyScores[entry.id]}</p>
-              <div className="penalty-manual-actions penalty-manual-actions--row">
-                <button
-                  type="button"
-                  className="penalty-manual-btn penalty-manual-btn--grant tap-active"
-                  onClick={() => handleManualGrant(entry.id, entry.name)}
-                >
-                  +1
-                </button>
-                <button
-                  type="button"
-                  className="penalty-manual-btn penalty-manual-btn--deduct tap-active"
-                  onClick={() => handleManualDeduct(entry.id, entry.name)}
-                  disabled={penaltyScores[entry.id] <= 0}
-                  title="Schnell ausgleichen"
-                >
-                  −1 ausgleichen
-                </button>
+          {USERS.map((entry) => {
+            const flash = scoreFlash[entry.id]
+            const flashClass =
+              flash === 'plus'
+                ? 'penalty-score-card--flash-plus'
+                : flash === 'minus'
+                  ? 'penalty-score-card--flash-minus'
+                  : ''
+
+            return (
+              <div
+                key={entry.id}
+                className={`penalty-score-card penalty-score-card--hero ${flashClass}`}
+              >
+                <p className="penalty-score-name">{entry.name}</p>
+                <AnimatedScore value={penaltyScores[entry.id]} pulse={scorePulse[entry.id]} />
+                <div className="penalty-manual-actions penalty-manual-actions--row">
+                  <button
+                    type="button"
+                    className="penalty-manual-btn penalty-manual-btn--grant tap-active"
+                    onClick={() => handleManualGrant(entry.id, entry.name)}
+                  >
+                    +1
+                  </button>
+                  <button
+                    type="button"
+                    className="penalty-manual-btn penalty-manual-btn--deduct tap-active"
+                    onClick={() => handleManualDeduct(entry.id, entry.name)}
+                    disabled={penaltyScores[entry.id] <= 0}
+                    title="Schnell ausgleichen"
+                  >
+                    −1 ausgleichen
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="penalty-counter-meta penalty-counter-meta--compact">
@@ -262,8 +357,11 @@ export default function Strafkatalog() {
           <div className="penalty-mini-timeline">
             <p className="penalty-mini-timeline-label">Verlauf</p>
             <ul className="penalty-mini-timeline-list">
-              {miniTimeline.map((item) => (
-                <li key={item.id} className="penalty-mini-timeline-item">
+              {miniTimeline.map((item, index) => (
+                <li
+                  key={item.id}
+                  className={`penalty-mini-timeline-item ${index === 0 ? 'penalty-mini-timeline-item--fresh' : ''}`}
+                >
                   <span
                     className={`penalty-mini-timeline-delta ${item.delta > 0 ? 'penalty-mini-timeline-delta--plus' : 'penalty-mini-timeline-delta--minus'}`}
                   >
@@ -271,8 +369,9 @@ export default function Strafkatalog() {
                   </span>
                   <span className="penalty-mini-timeline-text">
                     {item.label}
-                    <span className="penalty-mini-timeline-who"> · {item.targetUserName}</span>
+                    <span className="penalty-mini-timeline-who"> → {item.targetUserName}</span>
                   </span>
+                  <time className="penalty-mini-timeline-time">{formatTimelineTime(item.at)}</time>
                 </li>
               ))}
             </ul>
@@ -337,6 +436,7 @@ export default function Strafkatalog() {
               lastByEntry.get(entry.id) ? formatDate(lastByEntry.get(entry.id)!) : undefined
             }
             appliedId={appliedId}
+            impactCardId={impactCardId}
             onApply={tab === 'strafen' ? handleApplyStrafe : handleApplyWiedergutmachung}
             disabledFor={
               tab === 'wiedergutmachungen'
